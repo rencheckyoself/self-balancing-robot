@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
     These are all functions that support computing the Legrangian Dynamics.

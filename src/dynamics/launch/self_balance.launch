@@ -1,0 +1,8 @@
+<launch>
+
+  <rosparam command="load" file="$(find dynamics)/config/robot_params.yaml"/>
+  <rosparam command="load" file="$(find dynamics)/config/controller_params.yaml"/>
+
+  <node name="simulate" pkg="dynamics" type="simulate" output="screen"/>
+
+</launch>

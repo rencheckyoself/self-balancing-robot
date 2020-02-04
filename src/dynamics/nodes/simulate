@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 This file is a node to solve for the equations of motion, calculate the state of
@@ -19,8 +19,6 @@ from sensor_msgs.msg import JointState
 
 from dynamics import se3ToVec, TransInv, integrate
 
-
-
 class BalanceBot(object):
     """
     Class to simulate a self balancing robot
@@ -35,15 +33,15 @@ class BalanceBot(object):
             tt is the rotation of the robot's body relative to the body frame
     """
     def __init__(self, init_q):
-        self.rate = rospy.get_param("fre")
-        self.pub = rospy.Publisher("joint_states", JointState, queuesize=1)
+        self.rate = rospy.get_param("frequency")
+        self.pub = rospy.Publisher("joint_states", JointState, queue_size=1)
 
         self.eom_for_state = []
 
-        self.cur_x = init_q
+        self.cur_x = np.array(init_q)
 
 
-    def ComputeEOM():
+    def ComputeEOM(self):
         """
         This function will compute the equations of motion for a two wheeled, self
         balancing robot using the parameters defined in the robot_params file.
@@ -196,7 +194,7 @@ class BalanceBot(object):
 
         g_wt = g_wb * g_bt
 
-        print("Setup Complete")
+        print("Setup Complete -- Assembling Legrangian...")
 
         ############################################################################
         # ASSEMBLE THE LEGRANGIAN
@@ -231,7 +229,7 @@ class BalanceBot(object):
         # Get Legrangian
         L = KE_tot - PE_tot
 
-        print("Legrangian Assembled")
+        print("Legrangian Assembled -- Setting Up E-L Equations...")
 
         ############################################################################
         # DEFINE THE CONSTRAINTS
@@ -279,7 +277,7 @@ class BalanceBot(object):
         EL_eq = EL_eq.subs(subber_q)
         phi_dd = phi_dd.subs(subber_q)
 
-        print("Found Euler-Legrange Equations")
+        print("Found Euler-Legrange Equations -- Solving for EOM...")
 
         # Solve for the equations of motion
         sols = sym.solve([EL_eq, phi_dd], [Xbdd, Ybdd, Tbdd, Prdd, Pldd, Ttdd, lam1, lam2])
@@ -304,7 +302,7 @@ class BalanceBot(object):
 
         self.eom_for_state = [EOM_lxb, EOM_lyb, EOM_ltb, EOM_lpr, EOM_lpl, EOM_ltt]
 
-    def DynamicsArr():
+    def DynamicsArr(self, cur_loc):
         """
         Function to assemble the array that to be integrated.
 
@@ -313,29 +311,29 @@ class BalanceBot(object):
             state variable. Once integrated the array becomes [position, velocity, ...]
             of each state variable after the specified timestep.
         """
-
         # calculate the current accelerations
         acc_calc = np.ones(len(self.eom_for_state))
+
         for i, eq in enumerate(self.eom_for_state):
-            acc_calc[i] = eq(self.cur_x[0], self.cur_x[1], self.cur_x[2], self.cur_x[3], self.cur_x[4], self.cur_x[5], self.cur_x[6], self.cur_x[7], self.cur_x[8], self.cur_x[9], self.cur_x[10], self.cur_x[11])
+            acc_calc[i] = eq(cur_loc[0], cur_loc[1], cur_loc[2], cur_loc[3], cur_loc[4], cur_loc[5], cur_loc[6], cur_loc[7], cur_loc[8], cur_loc[9], cur_loc[10], cur_loc[11])
 
         # assemble the array to integrate
-        pos = ([cur_loc[1],
-                acc_calc[0],
-                cur_loc[3],
-                acc_calc[1],
-                cur_loc[5],
-                acc_calc[2],
-                cur_loc[7],
-                acc_calc[3],
-                cur_loc[9],
-                acc_calc[4],
-                cur_loc[11],
-                acc_calc[5]])
+        pos = np.array([cur_loc[1],
+                        acc_calc[0],
+                        cur_loc[3],
+                        acc_calc[1],
+                        cur_loc[5],
+                        acc_calc[2],
+                        cur_loc[7],
+                        acc_calc[3],
+                        cur_loc[9],
+                        acc_calc[4],
+                        cur_loc[11],
+                        acc_calc[5]])
 
         return pos
 
-    def Simulate():
+    def Simulate(self):
         """
         The main loop to integrate the Equations of Motion and simulate the
         system based on the set frequency and initial condition.
@@ -346,17 +344,15 @@ class BalanceBot(object):
 
         while not rospy.is_shutdown():
 
-            self.cur_x = integrate(self.DynamicsArr(), self.cur_x, 1./frequency)
+            self.cur_x = integrate(self.DynamicsArr, self.cur_x, 1./self.rate)
 
             state.header.stamp = rospy.Time.now()
             state.position = [self.cur_x[6], self.cur_x[8]]
-            state.velocity = [self.cur_x[7], self.cur_x[9]]
+            # state.velocity = [self.cur_x[7], self.cur_x[9]]
 
             self.pub.publish(state)
 
             r.sleep()
-
-
 
 def main():
 
