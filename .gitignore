@@ -1,0 +1,5 @@
+/build
+/devel
+*.pyc
+.catkin_workspace
+src/CMakeLists.txt

@@ -15,10 +15,10 @@ from sympy.abc import t
 import scipy.linalg
 
 import rospy
+from sensor_msgs.msg import JointState
 
 from dynamics import se3ToVec, TransInv, integrate
 
-from sensor_msgs.msg import JointState
 
 
 class BalanceBot(object):
