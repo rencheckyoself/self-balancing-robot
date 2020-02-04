@@ -144,7 +144,7 @@ I_wheel = (m_wheel * .5 * wheel_radius**2)
 
 # Create the Spatial Intertia Matrix
 # Need to fill in the Ixx and Iyy positions!!
-G_wheel = sym.Matrix(np.diagflat([m_wheel, m_wheel, m_wheel, 1, 1, I_wheel]))
+G_wheel = sym.Matrix(np.diagflat([m_wheel, m_wheel, m_wheel, 1, I_wheel, 1]))
 
 # Robot Body Properties
 # The body is represented by a rectangle
@@ -157,7 +157,7 @@ m_body = 4
 I_body = (1/12)*m_body*(4*(length**2) + width**2)
 
 # Need to fill in the Ixx and Iyy positions!!
-G_body = sym.Matrix(np.diagflat([m_body, m_body, m_body, 1, 1, I_body]))
+G_body = sym.Matrix(np.diagflat([m_body, m_body, m_body, 1, I_body, 1]))
 
 ###########################
 # Config Variable Set Up
@@ -230,12 +230,12 @@ g_transb = sym.Matrix([[1, 0, 0, x_b],
 
 
 g_transr = sym.Matrix([[1, 0, 0, 0],
-                       [0, 1, 0, -length/2],
+                       [0, 1, 0, -depth/2],
                        [0, 0, 1, 0],
                        [0, 0, 0, 1]])
 
 g_transl = sym.Matrix([[1, 0, 0, 0],
-                       [0, 1, 0, length/2],
+                       [0, 1, 0, depth/2],
                        [0, 0, 1, 0],
                        [0, 0, 0, 1]])
 
@@ -329,8 +329,8 @@ print("Legrangian Assembled")
 # Robotic Manipulation, Murray, Li, & Sastry pg. 272
 
 lam_mat = sym.Matrix([lam1, lam2])
-grad_phi = sym.Matrix([[1, 0, 0, -wheel_radius*sym.cos(th_b), -wheel_radius*sym.cos(th_b), 0],
-                       [0, 1, 0, -wheel_radius*sym.sin(th_b), -wheel_radius*sym.sin(th_b), 0]])
+grad_phi = sym.Matrix([[1, 0, 0, wheel_radius*sym.cos(th_b), wheel_radius*sym.cos(th_b), 0],
+                       [0, 1, 0, wheel_radius*sym.sin(th_b), wheel_radius*sym.sin(th_b), 0]])
 
 phi_d = grad_phi * qd
 phi_dd = phi_d.diff(t)
@@ -386,12 +386,12 @@ xvec = simulate(dynamics, init_q, tspan, dt)
 ### Plot to Verify Results
 fig1 = plt.figure(dpi=110,facecolor='w')
 plt.grid(True)
-plt.xlabel('Time')
-plt.ylabel('Position')
+plt.xlabel('X Position')
+plt.ylabel('Y Position')
 plt.plot(xvec[0], xvec[2])
 plt.autoscale(True)
 plt.title("Robot World Position")
-plt.legend(['$x_a(t)$',r'$\theta_a(t)$'])
+plt.legend(['$x_b(t)$',r'$\y_b(t)$'])
 
 fig1 = plt.figure(dpi=110,facecolor='w')
 plt.grid(True)
@@ -400,15 +400,15 @@ plt.ylabel('Position')
 plt.plot(tvec, xvec[10])
 plt.autoscale(True)
 plt.title("Body Angle Over Time")
-plt.legend([r'$\theta_b(t)$'])
+plt.legend([r'$\theta_t(t)$'])
 
 fig1 = plt.figure(dpi=110,facecolor='w')
 plt.grid(True)
 plt.xlabel('Time')
 plt.ylabel('Position')
-plt.plot(tvec, xvec[6], tvec, xvec[8])
+plt.plot(tvec, xvec[0], tvec, xvec[6], tvec, xvec[8])
 plt.autoscale(True)
-plt.title("Wheel Angles Over Time")
-plt.legend([r'$\theta_b(t)$'])
+plt.title("Wheel State Over Time")
+plt.legend([r'$x_b(t)$', r'$\phi_r(t)$', r'$\phi_l(t)$'])
 
 plt.show()

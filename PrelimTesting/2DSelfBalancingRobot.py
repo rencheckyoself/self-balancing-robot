@@ -117,6 +117,7 @@ def dynamics(cur_loc):
 
 wheel_radius = 1
 m_wheel = 1
+
 I_wheel = (m_wheel * .5 * wheel_radius**2) # Thin disk approximation
 
 G_wheel = sym.Matrix(np.diagflat([m_wheel, m_wheel, m_wheel, 1, 1, I_wheel]))
@@ -241,14 +242,19 @@ L = KE_tot - PE_tot
 #
 # Model No-Slip Condition for the wheel
 
-phi = q[0] + wheel_radius * q[1]
-phi_d = qd[0] + wheel_radius * qd[1]
+grad_phi = sym.Matrix([[1, wheel_radius, 0]])
+
+phi_d = grad_phi * qd
 phi_dd = phi_d.diff(t)
 
-phi = sym.Matrix([phi])
-grad_phi = phi.jacobian(q).T
+# phi = q[0] + wheel_radius * q[1]
+# phi_d = qd[0] + wheel_radius * qd[1]
+# phi_dd = phi_d.diff(t)
+#
+# phi = sym.Matrix([phi])
+# grad_phi = phi.jacobian(q).T
 
-# phi_dd = sym.Eq(phi_dd,0)
+phi_dd = sym.Eq(phi_dd, sym.Matrix([[0]]))
 
 # display(phi_dd)
 
@@ -257,7 +263,7 @@ dLdq = sym.Matrix([L]).jacobian(q).T
 dLdqdot = sym.Matrix([L]).jacobian(qd).T
 dLdqdot_dt = dLdqdot.diff(t)
 
-EL_eq = sym.Eq(dLdqdot_dt-dLdq, F_mat + lam*grad_phi)
+EL_eq = sym.Eq(dLdqdot_dt-dLdq, F_mat + lam*grad_phi.T)
 
 EL_eq = EL_eq.subs(subber_q)
 phi_dd = phi_dd.subs(subber_q)

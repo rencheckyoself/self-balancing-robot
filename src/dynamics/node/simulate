@@ -1,0 +1,376 @@
+#!/usr/bin/env python3
+
+"""
+This file is a node to solve for the equations of motion, calculate the state of
+the simulated system and publish it at a fixed frequency.
+
+PUBLISHERS:
+    /joint_states: the simulated state of the robot.
+"""
+
+import time
+import numpy as np
+import sympy as sym
+from sympy.abc import t
+import scipy.linalg
+
+import rospy
+
+from dynamics import se3ToVec, TransInv, integrate
+
+from sensor_msgs.msg import JointState
+
+
+class BalanceBot(object):
+    """
+    Class to simulate a self balancing robot
+
+    Input:
+        init_q: (list) The initial position and velocity for each state variable
+        having the following syntax:
+        (xb, xb_dot, yb, yb_dot, tb, tb_dot, pr, pr_dot, pl, pl_dot, tt, tt_dot)
+            xb, yb are the world coordinates of the base link
+            tb is the rotation of the base link relative to the world frame
+            pr, pl are the position of the right and left wheel respectively
+            tt is the rotation of the robot's body relative to the body frame
+    """
+    def __init__(self, init_q):
+        self.rate = rospy.get_param("fre")
+        self.pub = rospy.Publisher("joint_states", JointState, queuesize=1)
+
+        self.eom_for_state = []
+
+        self.cur_x = init_q
+
+
+    def ComputeEOM():
+        """
+        This function will compute the equations of motion for a two wheeled, self
+        balancing robot using the parameters defined in the robot_params file.
+
+        The end result of this function will be 6 equations to calculate the acceleration
+        of each state variable for a given position and velocity.
+        """
+
+        ###########################################################################
+        # ROBOT SETUP
+        ###########################################################################
+
+        # Import all the parameters from the parameter server
+        wheel_radius = rospy.get_param("wheel_radius")
+        m_wheel = rospy.get_param("wheel_mass")
+
+        # Thin disk approximation
+        I_wheel = (m_wheel * .5 * wheel_radius**2)
+
+        # Create the Spatial Intertia Matrix
+        # Need to fill in the Ixx and Izz positions!!
+        # Need to look into the parallel axis stuff and rotation point
+        G_wheel = sym.Matrix(np.diagflat([m_wheel, m_wheel, m_wheel, 1, I_wheel, 1]))
+
+        # Robot Body Properties
+        # The body is represented by a rectangle
+        length = rospy.get_param("body_height")
+        width = rospy.get_param("body_thickness")
+        depth = rospy.get_param("body_depth")
+        m_body = rospy.get_param("body_mass")
+
+        # Thin plate approximation for inertia
+        I_body = (1/12)*m_body*(4*(length**2) + width**2)
+
+        # Need to fill in the Ixx and Izz positions!!
+        G_body = sym.Matrix(np.diagflat([m_body, m_body, m_body, 1, I_body, 1]))
+
+        ###########################################################################
+        # STATE VARIABLE SETUP
+        ###########################################################################
+
+        # Set Symbols
+        g = 9.81
+        lam1, lam2 = sym.symbols('l_1 l_2')
+
+        # Set state variables
+        x_b = sym.Function('xb')(t)
+        y_b = sym.Function('yb')(t)
+        th_b = sym.Function('thb')(t)
+        p_r = sym.Function('pr')(t)
+        p_l = sym.Function('pl')(t)
+        th_t = sym.Function('tht')(t)
+
+        # Set Config Matrix
+        q = sym.Matrix([x_b, y_b, th_b, p_r, p_l, th_t])
+        qd = q.diff(t)
+        qdd = qd.diff(t)
+
+        # Set Dummy Vars
+        Xb, Xbd, Xbdd = sym.symbols('x_b x_bd x_bdd')
+        Yb, Ybd, Ybdd = sym.symbols('y_b y_bd y_bdd')
+        Tb, Tbd, Tbdd = sym.symbols('t_b t_bd t_bdd')
+        Pr, Prd, Prdd = sym.symbols('p_r p_rd p_rdd')
+        Pl, Pld, Pldd = sym.symbols('p_l p_ld p_ldd')
+        Tt, Ttd, Ttdd = sym.symbols('t_t t_td t_tdd')
+
+        # symbol substitution dictionary
+        subber_q = {q[0]:Xb, qd[0]:Xbd, qdd[0]:Xbdd,
+                    q[1]:Yb, qd[1]:Ybd, qdd[1]:Ybdd,
+                    q[2]:Tb, qd[2]:Tbd, qdd[2]:Tbdd,
+                    q[3]:Pr, qd[3]:Prd, qdd[3]:Prdd,
+                    q[4]:Pl, qd[4]:Pld, qdd[4]:Pldd,
+                    q[5]:Tt, qd[5]:Ttd, qdd[5]:Ttdd}
+
+        ############################################################################
+        # TRANSFORMATION SETUP
+          # Frame w - World frame at (0,0,0)
+          # Frame b - base link, at the mid point between the two wheel axels
+          # Frame r - at the center of the right wheel
+          # Frame l - at the center of the left wheel
+          # Frame t - at the center of mass of the robot body.
+        ############################################################################
+
+        # Translational Transformations ############################################
+
+        g_transb = sym.Matrix([[1, 0, 0, x_b],
+                               [0, 1, 0, y_b],
+                               [0, 0, 1, wheel_radius],
+                               [0, 0, 0, 1]])
+
+        g_transr = sym.Matrix([[1, 0, 0, 0],
+                               [0, 1, 0, -depth/2],
+                               [0, 0, 1, 0],
+                               [0, 0, 0, 1]])
+
+        g_transl = sym.Matrix([[1, 0, 0, 0],
+                               [0, 1, 0, depth/2],
+                               [0, 0, 1, 0],
+                               [0, 0, 0, 1]])
+
+        # COM assumed to be directly above b frame in the center of the body
+        xt = (length/2) * sym.cos(th_t)
+        yt = 0
+        zt = (length/2) * sym.sin(th_t)
+
+        g_transt = sym.Matrix([[1, 0, 0, xt],
+                               [0, 1, 0, yt],
+                               [0, 0, 1, zt],
+                               [0, 0, 0, 1]])
+
+        # Rotational Transformations ###############################################
+
+        g_rotb = sym.Matrix([[sym.cos(th_b), -sym.sin(th_b), 0, 0],
+                             [sym.sin(th_b), sym.cos(th_b), 0, 0],
+                             [0, 0, 1, 0],
+                             [0, 0, 0, 1]])
+
+        g_rotr = sym.Matrix([[sym.cos(p_r), 0, sym.sin(p_r), 0],
+                             [0, 1, 0, 0],
+                             [-sym.sin(p_r), 0, sym.cos(p_r), 0],
+                             [0, 0, 0, 1]])
+
+        g_rotl = sym.Matrix([[sym.cos(p_l), 0, sym.sin(p_l), 0],
+                             [0, 1, 0, 0],
+                             [-sym.sin(p_l), 0, sym.cos(p_l), 0],
+                             [0, 0, 0, 1]])
+
+        rot_ang = -((sym.pi/2) - th_t)
+        g_rott = sym.Matrix([[sym.cos(rot_ang), 0, sym.sin(rot_ang), 0],
+                             [0, 1, 0, 0],
+                             [-sym.sin(rot_ang), 0, sym.cos(rot_ang), 0],
+                             [0, 0, 0, 1]])
+
+
+        # Robot Transformations - all bodies relative to the base frame ############
+
+        g_br = g_transr * g_rotr
+
+        g_bl = g_transl * g_rotl
+
+        g_bt = g_transt * g_rott
+
+        # Final Transformations - all bodies relative to the world frame ###########
+
+        g_wb = g_transb * g_rotb
+
+        g_wr = g_wb * g_br
+
+        g_wl = g_wb * g_bl
+
+        g_wt = g_wb * g_bt
+
+        print("Setup Complete")
+
+        ############################################################################
+        # ASSEMBLE THE LEGRANGIAN
+        ############################################################################
+
+        # Calculate the Kinetic Energy of each body ################################
+        # KE = 1/2 *  V.T * G * V
+
+        # Set Velocity Vectors [vx, vy, vz, wx, wy, wz]
+        Vt = TransInv(g_wt) * g_wt.diff(t)
+        Vt = se3ToVec(Vt)
+
+        Vr = TransInv(g_wr) * g_wr.diff(t)
+        Vr = se3ToVec(Vr)
+
+        Vl = TransInv(g_wl) * g_wl.diff(t)
+        Vl = se3ToVec(Vl)
+
+        KEt = sym.simplify(.5 * Vt.T * G_body * Vt)
+        KEr = sym.simplify(.5 * Vr.T * G_wheel * Vr)
+        KEl = sym.simplify(.5 * Vl.T * G_wheel * Vl)
+
+        KE_tot = sym.simplify(KEt[0] + KEr[0] + KEl[0])
+
+        # Calculate the Potential Energy of each body ##############################
+        # Only component is the body of the robot
+
+        PEt = m_body * g * g_wt[2, 3]
+
+        PE_tot = PEt
+
+        # Get Legrangian
+        L = KE_tot - PE_tot
+
+        print("Legrangian Assembled")
+
+        ############################################################################
+        # DEFINE THE CONSTRAINTS
+            # For derivation, see Robotic Manipulation, Murray, Li, & Sastry pg. 272
+        ############################################################################
+
+        lam_mat = sym.Matrix([lam1, lam2])
+        grad_phi = sym.Matrix([[1, 0, 0, wheel_radius*sym.cos(th_b), wheel_radius*sym.cos(th_b), 0],
+                               [0, 1, 0, wheel_radius*sym.sin(th_b), wheel_radius*sym.sin(th_b), 0]])
+
+        phi_d = grad_phi * qd
+        phi_dd = phi_d.diff(t)
+
+        phi_dd = sym.Eq(phi_dd, sym.Matrix([[0], [0]]))
+
+        ############################################################################
+        # DEFINE THE EXTERNAL FORCES
+        # Convert this to a lambdified function
+        ############################################################################
+
+        kp = rospy.get_param("kp")
+        ki = rospy.get_param("ki")
+        kd = rospy.get_param("kd")
+
+        set_pt = sym.pi/2
+        kp = 0
+        F_tht = kp*(set_pt - th_b)
+
+        F_mat = sym.Matrix([[0],
+                            [0],
+                            [0],
+                            [F_tht],
+                            [F_tht],
+                            [0]])
+
+        ############################################################################
+        # CALCULATE EULER-LEGRANGE EQUATIONS
+        ############################################################################
+        dLdq = sym.Matrix([L]).jacobian(q).T
+        dLdqdot = sym.Matrix([L]).jacobian(qd).T
+        dLdqdot_dt = dLdqdot.diff(t)
+
+        EL_eq = sym.Eq(dLdqdot_dt-dLdq, F_mat + grad_phi.T * lam_mat)
+
+        EL_eq = EL_eq.subs(subber_q)
+        phi_dd = phi_dd.subs(subber_q)
+
+        print("Found Euler-Legrange Equations")
+
+        # Solve for the equations of motion
+        sols = sym.solve([EL_eq, phi_dd], [Xbdd, Ybdd, Tbdd, Prdd, Pldd, Ttdd, lam1, lam2])
+
+        print("Solved Equations of Motion")
+
+        EOM_xb = sym.Eq(Xbdd, sols[Xbdd])
+        EOM_yb = sym.Eq(Ybdd, sols[Ybdd])
+        EOM_tb = sym.Eq(Tbdd, sols[Tbdd])
+        EOM_pr = sym.Eq(Prdd, sols[Prdd])
+        EOM_pl = sym.Eq(Pldd, sols[Pldd])
+        EOM_tt = sym.Eq(Ttdd, sols[Ttdd])
+
+        # lambdify the equations to make them usable functions
+        q_list = [Xb, Xbd, Yb, Ybd, Tb, Tbd, Pr, Prd, Pl, Pld, Tt, Ttd]
+        EOM_lxb = sym.lambdify(q_list, EOM_xb.rhs)
+        EOM_lyb = sym.lambdify(q_list, EOM_yb.rhs)
+        EOM_ltb = sym.lambdify(q_list, EOM_tb.rhs)
+        EOM_lpr = sym.lambdify(q_list, EOM_pr.rhs)
+        EOM_lpl = sym.lambdify(q_list, EOM_pl.rhs)
+        EOM_ltt = sym.lambdify(q_list, EOM_tt.rhs)
+
+        self.eom_for_state = [EOM_lxb, EOM_lyb, EOM_ltb, EOM_lpr, EOM_lpl, EOM_ltt]
+
+    def DynamicsArr():
+        """
+        Function to assemble the array that to be integrated.
+
+        Output:
+            pos: (array) the [velocity, acceleration, ...] for each
+            state variable. Once integrated the array becomes [position, velocity, ...]
+            of each state variable after the specified timestep.
+        """
+
+        # calculate the current accelerations
+        acc_calc = np.ones(len(self.eom_for_state))
+        for i, eq in enumerate(self.eom_for_state):
+            acc_calc[i] = eq(self.cur_x[0], self.cur_x[1], self.cur_x[2], self.cur_x[3], self.cur_x[4], self.cur_x[5], self.cur_x[6], self.cur_x[7], self.cur_x[8], self.cur_x[9], self.cur_x[10], self.cur_x[11])
+
+        # assemble the array to integrate
+        pos = ([cur_loc[1],
+                acc_calc[0],
+                cur_loc[3],
+                acc_calc[1],
+                cur_loc[5],
+                acc_calc[2],
+                cur_loc[7],
+                acc_calc[3],
+                cur_loc[9],
+                acc_calc[4],
+                cur_loc[11],
+                acc_calc[5]])
+
+        return pos
+
+    def Simulate():
+        """
+        The main loop to integrate the Equations of Motion and simulate the
+        system based on the set frequency and initial condition.
+        """
+        r = rospy.Rate(self.rate)
+        state = JointState()
+        state.name = ['wheel_left_axle, wheel_right_axle']
+
+        while not rospy.is_shutdown():
+
+            self.cur_x = integrate(self.DynamicsArr(), self.cur_x, 1./frequency)
+
+            state.header.stamp = rospy.Time.now()
+            state.position = [self.cur_x[6], self.cur_x[8]]
+            state.velocity = [self.cur_x[7], self.cur_x[9]]
+
+            self.pub.publish(state)
+
+            r.sleep()
+
+
+
+def main():
+
+    rospy.init_node('simulate')
+
+    bot = BalanceBot([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 - .1), 0])
+
+    bot.ComputeEOM()
+    bot.Simulate()
+
+    rospy.spin()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass

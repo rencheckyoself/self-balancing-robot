@@ -1,0 +1,7 @@
+wheel_radius: 0.01 # Radius of the wheels
+wheel_mass: 1 # mass of a wheel
+wheel_base: 0.2 # Distance between the wheels centers
+body_height: .3 # The z-height of the robot
+body_thickness: .015 # the x-distance of the body
+body_depth: 0.18 # The y-distance of the body
+body_mass: 4 # The mass of the body assembly

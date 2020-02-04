@@ -1,0 +1,4 @@
+frequency: 10 # the timestep in Hz
+kp: 0 # proportional gain
+ki: 0 # integral gain
+kd: 0 # derivative gain
