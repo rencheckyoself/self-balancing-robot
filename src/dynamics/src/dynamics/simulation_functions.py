@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-
-"""
-    These are all functions that support computing the Legrangian Dynamics.
-"""
+""" These are all functions that support computing & simulating the Legrangian Dynamics """
 
 import time
 import sympy as sym

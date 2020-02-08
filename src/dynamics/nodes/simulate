@@ -17,6 +17,8 @@ import scipy.linalg
 import rospy
 from sensor_msgs.msg import JointState
 
+from std_msgs import Float64
+
 from dynamics import se3ToVec, TransInv, integrate
 
 class InertiaProps(object):
@@ -35,38 +37,6 @@ class InertiaProps(object):
         self.Ixy = Ixy
         self.Ixz = Ixz
         self.Iyz = Iyz
-
-class Controller(object):
-    """
-    Class to define a PID controller and compute the nessissary controls
-
-    Input:
-        kp: (double) proportional gain
-        ki: (double) integral gain
-        kd: (double) differential gain
-        dt: (double) a constant timestep
-        set_point: (double) the value the cotroller will drive the system to
-    """
-    def __init__(self, kp, ki, kd, dt, set_point):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.timestep = dt
-        self.set_point = set_point
-
-        self.error = 0
-
-    def compute_control():
-        pass
-
-    def change_setpoint(new_val):
-        """
-        Function to modify the set point
-
-        Input:
-            new_val: (double) the new set point
-        """
-        self.setpoint = new_val
 
 class Wheel(object):
     """
@@ -87,16 +57,14 @@ class Body(object):
     Class to define the robot body. The body is approximated to a 3D rectangle
 
     Input:
-        length: (double) length of the body between the two wheels
-        width: (double) thickness from front to back
-        height: (double) height of the body
+        com_height: (double) The z-distance between the base link and the body center of mass
+        wheel_base: (double) The between the two wheels
         mass: (double) mass of the body
         inertia: (InertiaProps) the inertia tensor of the body
     """
-    def __init__(self, length, width, height, mass, inertia):
-        self.length = length
-        self.width = width
-        self.height = height
+    def __init__(self, com_height, wheel_base, mass, inertia):
+        self.com_height = com_height
+        self.wheel_base = wheel_base
         self.mass = mass
         self.inertia = inertia
 
@@ -112,107 +80,115 @@ class BalanceBot(object):
             tb is the rotation of the base link relative to the world frame
             pr, pl are the position of the right and left wheel respectively
             tt is the rotation of the robot's body relative to the body frame
-        left_wheel: (Wheel) a wheel object that defines the left wheel
-        right_wheel: (Wheel) a wheel object that defines the right wheel
+        wheel: (Wheel) a wheel object that defines the properties of each wheel
         body: (Body) a body object that defines the approximated body
     """
-    def __init__(self, init_q, left_wheel, right_wheel, body):
-        self.rate = rospy.get_param("frequency")
-        self.pub = rospy.Publisher("joint_states", JointState, queue_size=1)
-
-        self.eom_for_state =
+    def __init__(self, init_q, wheel, body):
 
         self.cur_x = np.array(init_q)
 
-        self.left_wheel = left_wheel
-        self.right_wheel = right_wheel
+        self.wheel = wheel
         self.body = body
 
-    def xb_acc(x, dx):
-        """
-        Equation to calculate the x acceleration of the base link
 
-        Input:
-            x: (double) current x position of the base link
-            dx: (double) current x velocity of the base link
+        self.rate = rospy.get_param("frequency")
 
-        Output:
-            ddx: (double) current x acceleration of the base link
-        """
-        pass
+        self.pub_js = rospy.Publisher("joint_states", JointState, queue_size=1)
+        self.pub_ham = rospy.Publisher("hamiltonian", Float64, queue_size=1)
+        self.pub_tau = rospy.Publisher("control_force", Float64, queue_size=1)
 
-    def yb_acc(y, dy):
-        """
-        Equation to calculate the y acceleration of the base link
+        self.eom_for_state = [] # List of eqs to calculate acceleration
+        self.ham_eq = 0 # Eq to calculate the hamiltonian
 
-        Input:
-            y: (double) current y position of the base link
-            dy: (double) current y velocity of the base link
+        self.ComputeEOM()
 
-        Output:
-            ddy: (double) current y acceleration of the base link
-        """
-        pass
 
-    def thb_acc(th, dth):
-        """
-        Equation to calculate the angular acceleration of the base link
 
-        Input:
-            th: (double) current angular position of the base link
-            dth: (double) current angular velocity of the base link
+    # def xb_acc(x, dx):
+    #     """
+    #     Equation to calculate the x acceleration of the base link
+    #
+    #     Input:
+    #         x: (double) current x position of the base link
+    #         dx: (double) current x velocity of the base link
+    #
+    #     Output:
+    #         ddx: (double) current x acceleration of the base link
+    #     """
+    #     pass
+    #
+    # def yb_acc(y, dy):
+    #     """
+    #     Equation to calculate the y acceleration of the base link
+    #
+    #     Input:
+    #         y: (double) current y position of the base link
+    #         dy: (double) current y velocity of the base link
+    #
+    #     Output:
+    #         ddy: (double) current y acceleration of the base link
+    #     """
+    #     pass
+    #
+    # def thb_acc(th, dth):
+    #     """
+    #     Equation to calculate the angular acceleration of the base link
+    #
+    #     Input:
+    #         th: (double) current angular position of the base link
+    #         dth: (double) current angular velocity of the base link
+    #
+    #     Output:
+    #         ddth: (double) current angular acceleration of the base link
+    #     """
+    #     pass
+    #
+    # def pr_acc(th, dth):
+    #     """
+    #     Equation to calculate the angular acceleration of the right wheel
+    #
+    #     Input:
+    #         th: (double) current angular position of the right wheel
+    #         dth: (double) current angular velocity of the right wheel
+    #
+    #     Output:
+    #         ddth: (double) current angular acceleration of the right wheel
+    #     """
+    #     pass
+    #
+    # def pl_acc(th, dth):
+    #     """
+    #     Equation to calculate the angular acceleration of the left wheel
+    #
+    #     Input:
+    #         th: (double) current angular position of the left wheel
+    #         dth: (double) current angular velocity of the left wheel
+    #
+    #     Output:
+    #         ddth: (double) current angular acceleration of the left wheel
+    #     """
+    #     pass
+    #
+    # def tht_acc(th, dth):
+    #     """
+    #     Equation to calculate the angular acceleration of the robot body
+    #
+    #     Input:
+    #         th: (double) current angular position of the robot body
+    #         dth: (double) current angular velocity of the robot body
+    #
+    #     Output:
+    #         ddth: (double) current angular acceleration of the robot body
+    #     """
+    #     pass
 
-        Output:
-            ddth: (double) current angular acceleration of the base link
-        """
-        pass
-
-    def pr_acc(th, dth):
-        """
-        Equation to calculate the angular acceleration of the right wheel
-
-        Input:
-            th: (double) current angular position of the right wheel
-            dth: (double) current angular velocity of the right wheel
-
-        Output:
-            ddth: (double) current angular acceleration of the right wheel
-        """
-        pass
-
-    def pl_acc(th, dth):
-        """
-        Equation to calculate the angular acceleration of the left wheel
-
-        Input:
-            th: (double) current angular position of the left wheel
-            dth: (double) current angular velocity of the left wheel
-
-        Output:
-            ddth: (double) current angular acceleration of the left wheel
-        """
-        pass
-
-    def tht_acc(th, dth):
-        """
-        Equation to calculate the angular acceleration of the robot body
-
-        Input:
-            th: (double) current angular position of the robot body
-            dth: (double) current angular velocity of the robot body
-
-        Output:
-            ddth: (double) current angular acceleration of the robot body
-        """
-        pass
-
-    def hamiltonian():
+    def calc_hamiltonian(self):
         """
         Function to compute the hamiltonian. Used to show help verify the validity
         of the simulation.
 
-        Theoretically H = 0, but the numerical integration will
-        create an error over time resulting in H != 0. If this error is small
+        Theoretically ham = 0, but the numerical integration will
+        create an error over time resulting in ham != 0. If this error is small
         the simulation is more trustworthy.
         """
         # (0   1       2   3       4   5       6   7       8   9       10  11    )
@@ -220,29 +196,26 @@ class BalanceBot(object):
         # self.ham = (.5 * self.body.intertia.Iyy * self.cur_x[11]**2) + (.5 * self.left_wheel.inertia.Iyy * self.cur_x[9]**2) + \
         #            (.5 * self.right_wheel.inertia.Iyy * self.cur_x[7]**2)
 
+        ham = self.ham_eq(self.cur_x[0], self.cur_x[1], self.cur_x[2], self.cur_x[3], self.cur_x[4],
+                          self.cur_x[5], self.cur_x[6], self.cur_x[7], self.cur_x[8], self.cur_x[9],
+                          self.cur_x[10], self.cur_x[11], self.tau)
 
-        pass
+        self.pub_ham.publish(ham)
 
     def ComputeEOM(self):
         """
-        This function will compute the equations of motion for a two wheeled, self
-        balancing robot using the parameters defined in the robot_params file.
+        This function will convert the stored solutions into usable equations of
+        motion for a two wheeled, self balancing robot using the parameters
+        defined in the robot_params file.
 
-        The end result of this function will be 6 equations to calculate the acceleration
-        of each state variable for a given position and velocity.
+        The end result of this function will be 6 equations to calculate the
+        acceleration of each state variable for a given position, velocity, and
+        control force. And 1 equation to compute the hamiltonian.
         """
 
         # Create all symbols to match the solutions - these need to match the SelfBalancing_AllSymbolic.py file
         g = sym.symbols('g')
         lam1, lam2 = sym.symbols('l_1 l_2')
-
-        # Set Functions
-        x_b = sym.Function('xb')(t)
-        y_b = sym.Function('yb')(t)
-        th_b = sym.Function('thb')(t)
-        p_r = sym.Function('pr')(t)
-        p_l = sym.Function('pl')(t)
-        th_t = sym.Function('tht')(t)
 
         Xb, Xbd, Xbdd = sym.symbols('x_b x_bd x_bdd')
         Yb, Ybd, Ybdd = sym.symbols('y_b y_bd y_bdd')
@@ -260,28 +233,40 @@ class BalanceBot(object):
         m_body = sym.symbols('m_b')
         Ixxb, Iyyb, Izzb = sym.symbols('I_{xxb} I_{yyb} I_{zzb}')
 
-        # Import solutions from file
-        test_file = open('Sols.pickle', 'rb')
-        sols = pickle.load(test_file)
-        test_file.close()
+        const_subs = {g : 9.81,
+                      m_body : self.body.mass, COMz : self.body.com_height,
+                      Ixxb : self.body.inertia.Ixx, Iyyb : self.body.inertia.Iyy, Izzb : self.body.inertia.Izz,
+                      m_wheel : self.left_wheel.mass, wheel_radius : self.left_wheel.radius, wheel_base : self.body.wheel_base,
+                      Ixxw : self.left_wheel.inertia.Ixx, Iyyw : self.left_wheel.inertia.Iyy, Izzw : self.left_wheel.inertia.Izz}
 
-        EOM_xb = sym.Eq(Xbdd, sols[Xbdd])
-        EOM_yb = sym.Eq(Ybdd, sols[Ybdd])
-        EOM_tb = sym.Eq(Tbdd, sols[Tbdd])
-        EOM_pr = sym.Eq(Prdd, sols[Prdd])
-        EOM_pl = sym.Eq(Pldd, sols[Pldd])
-        EOM_tt = sym.Eq(Ttdd, sols[Ttdd])
+        # Import solutions from file
+        sols_file = open('Sols.pickle', 'rb')
+        sols = pickle.load(sols_file)
+        sols_file.close()
+
+        EOM_xb = sym.Eq(Xbdd, sols[Xbdd].subs(const_subs))
+        EOM_yb = sym.Eq(Ybdd, sols[Ybdd].subs(const_subs))
+        EOM_tb = sym.Eq(Tbdd, sols[Tbdd].subs(const_subs))
+        EOM_pr = sym.Eq(Prdd, sols[Prdd].subs(const_subs))
+        EOM_pl = sym.Eq(Pldd, sols[Pldd].subs(const_subs))
+        EOM_tt = sym.Eq(Ttdd, sols[Ttdd].subs(const_subs))
 
         # lambdify the equations to make them usable functions
-        var_list = [Xb, Xbd, Yb, Ybd, Tb, Tbd, Pr, Prd, Pl, Pld, Tt, Ttd]
-        EOM_lxb = sym.lambdify(q_list, EOM_xb.rhs)
-        EOM_lyb = sym.lambdify(q_list, EOM_yb.rhs)
-        EOM_ltb = sym.lambdify(q_list, EOM_tb.rhs)
-        EOM_lpr = sym.lambdify(q_list, EOM_pr.rhs)
-        EOM_lpl = sym.lambdify(q_list, EOM_pl.rhs)
-        EOM_ltt = sym.lambdify(q_list, EOM_tt.rhs)
+        var_list = [Xb, Xbd, Yb, Ybd, Tb, Tbd, Pr, Prd, Pl, Pld, Tt, Ttd, F_tht]
+        EOM_lxb = sym.lambdify(var_list, EOM_xb.rhs)
+        EOM_lyb = sym.lambdify(var_list, EOM_yb.rhs)
+        EOM_ltb = sym.lambdify(var_list, EOM_tb.rhs)
+        EOM_lpr = sym.lambdify(var_list, EOM_pr.rhs)
+        EOM_lpl = sym.lambdify(var_list, EOM_pl.rhs)
+        EOM_ltt = sym.lambdify(var_list, EOM_tt.rhs)
 
         self.eom_for_state = [EOM_lxb, EOM_lyb, EOM_ltb, EOM_lpr, EOM_lpl, EOM_ltt]
+
+        ham_file = open('Ham.pickle', 'rb')
+        ham_sol = pickle.load(ham_file)
+        ham_file.close()
+
+        self.ham = sym.lambdify(var_list, ham_sol.subs(const_subs))
 
     def DynamicsArr(self, cur_loc):
         """
@@ -292,13 +277,16 @@ class BalanceBot(object):
             state variable. Once integrated the array becomes [position, velocity, ...]
             of each state variable after the specified timestep.
         """
-        acc_calc = np.ones(len(self.eom_for_state))
+
+        # calculate the control torque to apply
+        self.tau = 0
 
         # calculate the current accelerations
+        acc_calc = np.ones(len(self.eom_for_state))
         for i, eq in enumerate(self.eom_for_state):
-            index = i*2
-            # acc_calc[i] = eq(cur_loc[0], cur_loc[1], cur_loc[2], cur_loc[3], cur_loc[4], cur_loc[5], cur_loc[6], cur_loc[7], cur_loc[8], cur_loc[9], cur_loc[10], cur_loc[11])
-            acc_calc[i] = eq(cur_loc[index], cur_loc[index+1])
+            acc_calc[i] = eq(cur_loc[0], cur_loc[1], cur_loc[2], cur_loc[3], cur_loc[4],
+                             cur_loc[5], cur_loc[6], cur_loc[7], cur_loc[8], cur_loc[9],
+                             cur_loc[10], cur_loc[11], self.tau)
 
         # assemble the array to integrate
         pos = np.array([cur_loc[1],
@@ -330,10 +318,12 @@ class BalanceBot(object):
             self.cur_x = integrate(self.DynamicsArr, self.cur_x, 1./self.rate)
 
             state.header.stamp = rospy.Time.now()
-            state.position = [self.cur_x[6], self.cur_x[8]]
-            # state.velocity = [self.cur_x[7], self.cur_x[9]]
+            state.name = ["left_wheel_axle, right_wheel_axle, body_joint"]
+            state.position = [self.cur_x[6], self.cur_x[8], self.cur_x[10]]
+            # state.velocity = [self.cur_x[7], self.cur_x[9], self.cur_x[11]]
 
-            self.pub.publish(state)
+            self.pub_js.publish(state)
+            self.pub_tau.publish(self.tau)
 
             r.sleep()
 
