@@ -3,3 +3,6 @@
 *.pyc
 .catkin_workspace
 src/CMakeLists.txt
+*.pickle
+PrelimTesting/SelfBalancing.py
+PrelimTesting/2DSelfBalancingRobot.py
