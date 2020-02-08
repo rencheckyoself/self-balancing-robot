@@ -14,12 +14,12 @@ import sympy as sym
 from sympy.abc import t
 import scipy.linalg
 
+import pickle
+
 import rospy
 from sensor_msgs.msg import JointState
 
-from std_msgs import Float64
-
-from dynamics import se3ToVec, TransInv, integrate
+from dynamics import integrate, Controller
 
 class InertiaProps(object):
     """
@@ -316,11 +316,13 @@ class BalanceBot(object):
         while not rospy.is_shutdown():
 
             self.cur_x = integrate(self.DynamicsArr, self.cur_x, 1./self.rate)
+            self.calc_hamiltonian()
 
             state.header.stamp = rospy.Time.now()
             state.name = ["left_wheel_axle, right_wheel_axle, body_joint"]
             state.position = [self.cur_x[6], self.cur_x[8], self.cur_x[10]]
             # state.velocity = [self.cur_x[7], self.cur_x[9], self.cur_x[11]]
+
 
             self.pub_js.publish(state)
             self.pub_tau.publish(self.tau)
@@ -332,16 +334,34 @@ def main():
     rospy.init_node('simulate')
 
     wheel_radius = rospy.get_param("wheel_radius")
-    m_wheel = rospy.get_param("wheel_mass")
+    wheel_mass = rospy.get_param("wheel_mass")
 
-    length = rospy.get_param("body_height")
-    width = rospy.get_param("body_thickness")
-    depth = rospy.get_param("body_depth")
-    m_body = rospy.get_param("body_mass")
+    body_com = rospy.get_param("body_com_height")
+    body_wbase = rospy.get_param("body_wheel_base")
+    body_mass = rospy.get_param("body_mass")
 
-    bot = BalanceBot([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 - .1), 0])
+    w_inertia = InertiaProps(rospy.get_param("wheel_Ixx"),
+                             rospy.get_param("wheel_Iyy"),
+                             rospy.get_param("wheel_Izz"),
+                             rospy.get_param("wheel_Ixy"),
+                             rospy.get_param("wheel_Ixz"),
+                             rospy.get_param("wheel_Iyz"))
 
-    bot.ComputeEOM()
+    b_inertia = InertiaProps(rospy.get_param("body_Ixx"),
+                             rospy.get_param("body_Iyy"),
+                             rospy.get_param("body_Izz"),
+                             rospy.get_param("body_Ixy"),
+                             rospy.get_param("body_Ixz"),
+                             rospy.get_param("body_Iyz"))
+
+    wheel_obj = Wheel(wheel_radius, wheel_mass, w_inertia)
+
+    body_obj = Body(body_com, body_wbase, body_mass, b_inertia)
+
+    init_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 - .1), 0]
+
+    bot = BalanceBot(init_state, wheel_obj, body_obj)
+
     bot.Simulate()
 
     rospy.spin()

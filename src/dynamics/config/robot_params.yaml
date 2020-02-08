@@ -1,7 +1,20 @@
 wheel_radius: 1 # Radius of the wheels
 wheel_mass: 1 # mass of a wheel
-wheel_base: 4 # Distance between the wheels centers
-body_height: 3 # The z-height of the robot
-body_thickness: 1 # the x-distance of the body
-body_depth: 4 # The y-distance of the body
+
+wheel_Ixx: 1 # the Ixx component of the wheel intertia
+wheel_Iyy: 0.5 # the Iyy component of the wheel inertia
+wheel_Izz: 1 # the Izz component of the wheel inertia
+wheel_Ixy: 0 # the Ixy component of the wheel inertia
+wheel_Ixz: 0 # the Ixz component of the wheel inertia
+wheel_Iyz: 0 # the Iyz component of the wheel inertia
+
+body_wheel_base: 4 # Distance between the wheels centers
+body_com_height: 1.5 # Height to the COM of the body from the base link
 body_mass: 4 # The mass of the body assembly
+
+body_Ixx: 1 # the Ixx component of the body intertia
+body_Iyy: 12.333 # the Iyy component of the body inertia
+body_Izz: 1 # the Izz component of the body inertia
+body_Ixy: 0 # the Ixy component of the body inertia
+body_Ixz: 0 # the Ixz component of the body inertia
+body_Iyz: 0 # the Iyz component of the body inertia
