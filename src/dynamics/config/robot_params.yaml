@@ -1,4 +1,6 @@
-wheel_radius: 1 # Radius of the wheels
+# All units are in m and kg
+
+wheel_radius: 0.04 # Radius of the wheels
 wheel_mass: 1 # mass of a wheel
 
 wheel_Ixx: 1 # the Ixx component of the wheel intertia
@@ -8,12 +10,12 @@ wheel_Ixy: 0 # the Ixy component of the wheel inertia
 wheel_Ixz: 0 # the Ixz component of the wheel inertia
 wheel_Iyz: 0 # the Iyz component of the wheel inertia
 
-body_width: 4 # y distance of the body
-body_height: 3 # z distance of the body
-body_thickness: 1 # x distance of the body
+body_width: 0.13 # y distance of the body
+body_height: 0.28264 # z distance of the body
+body_thickness: 0.08 # x distance of the body
 
-body_wheel_base: 4 # Distance between the wheels centers
-body_com_height: 1.5 # Height to the COM of the body from the base link
+body_wheel_base: 0.13554 # Distance between the wheels centers
+body_com_height: 0.0437 # Height to the COM of the body from the base link
 body_mass: 4 # The mass of the body assembly
 
 body_Ixx: 1 # the Ixx component of the body intertia

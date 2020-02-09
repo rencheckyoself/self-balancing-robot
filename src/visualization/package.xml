@@ -58,5 +58,6 @@
 
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rviz</exec_depend>
+  <exec_depend>xacro</exec_depend>
 
 </package>

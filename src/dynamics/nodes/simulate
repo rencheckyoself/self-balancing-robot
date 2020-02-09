@@ -5,7 +5,10 @@ This file is a node to solve for the equations of motion, calculate the state of
 the simulated system and publish it at a fixed frequency.
 
 PUBLISHERS:
-    /joint_states: the simulated state of the robot.
+    /joint_states: (JoinState) the simulated state of the robot
+    /hamiltonian: (Float64) the calculated hamiltonian of the system
+    /control_force: (Float64) the required control force
+
 """
 
 import time
@@ -269,7 +272,6 @@ class BalanceBot(object):
         ham_file.close()
 
         self.ham_eq = sym.lambdify(var_list, ham_sol.subs(const_subs))
-
 
     def DynamicsArr(self, cur_loc):
         """

@@ -10,78 +10,73 @@
   <xacro:property name="body_width" value="${props['body_width']}"/>
   <xacro:property name="body_height" value="${props['body_height']}"/>
   <xacro:property name="body_thickness" value="${props['body_thickness']}"/>
+  <xacro:property name="body_com_height" value="${props['body_com_height']}"/>
+
+
+  <xacro:property name="motor_height" value="0.005"/> <!-- distance between wheel rotation axis and bottom plate-->
+  <xacro:property name="mid_tier" value="0.0191"/> <!-- distance between mid plate and bottom plate-->
+  <xacro:property name="top_tier" value="0.0254"/> <!-- distance between mid plate and top plate-->
+
+  <xacro:property name="plate_thickness" value="0.00318"/> <!-- plate thickness -->
+  <xacro:property name="standoff_depth" value="0.00318"/> <!-- distance the standoff pokes through the plate -->
+  <xacro:property name="tl_hole_x" value="0.00508"/> <!-- hole offset from edge -->
+  <xacro:property name="tl_hole_y" value="0.00508"/> <!-- hole offset from edge -->
+  <xacro:property name="hole_pattern_x" value="0"/> <!-- center to center distance between holes -->
+  <xacro:property name="hole_pattern_y" value="0"/> <!-- center to center distance between holes -->
+
+  <material name="smokey">
+    <color rgba=".1 .1 .1 .5"/>
+  </material>
+
+  <material name="aluminum">
+    <color rgba=".5 .5 .5 .95"/>
+  </material>
+
+  <material name="invisible">
+    <color rgba="0 0 0 0"/>
+  </material>
 
   <!-- Macro to load a part with a mesh -->
-  <xacro:macro name="link_mesh" params="name origin_xyz origin_rpy meshfile meshscale">
+  <xacro:macro name="body_link_mesh" params="name lxyz lrpy mat meshfile meshscale jxyz jrpy">
     <link name="${name}">
       <visual>
-        <origin rpy="${origin_rpy}" xyz="${origin_xyz}" />
+        <origin rpy="${lrpy}" xyz="${lxyz}" />
         <geometry>
           <mesh filename="${meshfile}" scale="${meshscale}"/>
         </geometry>
-        <material name="red"/>
+        <material name="${mat}"/>
       </visual>
     </link>
+
+    <joint name= "${name}_joint" type="fixed">
+      <origin xyz="${jxyz}" rpy="${jrpy}" />
+      <parent link="moving_link"/>
+      <child link="${name}" />
+    </joint>
   </xacro:macro>
 
-  <!-- Macro to create wheels -->
-  <!-- <xacro:macro name="wheel_temp" params="wheel_side offset">
-    <link name="wheel_${wheel_side}">
-      <visual>
-        <origin rpy="${pi/2} 0 0" xyz="0 ${offset * (wheel_width/2)} 0"/>
-      </visual>
-    </link>
-
-    <joint name="${wheel_side}_wheel_axel" type="continuous">
-      <origin xyz="${base_shift-.25*chassis_length} ${offset * (chassis_width/2)} ${wheel_radius}" rpy="0 0 0" />
-      <parent link="base_link"/>
-      <child link="wheel_${wheel_side}" />
-      <axis xyz="0 1 0"/>
-    </joint>
-  </xacro:macro> -->
-
-  <!-- Macro to create casters -->
-  <!-- <xacro:macro name="caster_temp" params="caster_side offset">
-    <link name="caster_${caster_side}">
-      <visual>
-        <geometry>
-            <sphere radius="${castor_radius}" />
-        </geometry>
-        <material name="white_mat">
-          <color rgba=".9 .9 .9 .95" />
-        </material>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
-      </visual>
-    </link>
-
-    <joint name="${caster_side}_castor_joint" type="fixed">
-      <origin xyz="${base_shift + (chassis_length/2 - castor_radius)} 0 ${castor_radius}" rpy="0 0 0" />
-      <parent link="base_link"/>
-      <child link="caster_${caster_side}" />
-    </joint>
-  </xacro:macro> -->
 
   <!-- The base link of the robot center between the two wheels directly below the COM of the body -->
   <link name="base_link" >
     <visual>
       <geometry>
-        <sphere radius=".05" />
+        <sphere radius=".0025" />
       </geometry>
-      <material name="invisible">
+      <material name="black">
         <color rgba="0 0 0 1" />
       </material>
       <origin rpy="0 0 0" xyz="0 0 ${wheel_radius}"/>
     </visual>
   </link>
 
-  <!-- This is a body link used to represent the body of the robot. All STLs are fixed to it-->
+  <!-- This is a body link used to represent the COM of the robot. All body_link_mesh links are fixed to it-->
   <link name="moving_link">
     <visual>
       <geometry>
-        <box size="${body_thickness} ${body_width} ${body_height}" />
+        <sphere radius=".0025" />
       </geometry>
-      <material name="red"/>
-      <origin xyz="0 0 ${body_height/2}" rpy="0 0 0"/>
+      <material name="black"/>
+      <origin xyz="0 0 ${body_com_height}" rpy="0 0 0"/>
     </visual>
   </link>
 
@@ -92,19 +87,29 @@
     <axis xyz="0 1 0"/>
   </joint>
 
-  <xacro:link_mesh name="bottom_plate" origin_xyz="-1 -2 0" origin_rpy="${pi/2} 0 ${pi/2}"
+  <xacro:body_link_mesh name="bottom_plate" mat="smokey"
+    lxyz="${-body_thickness/2} ${-body_width/2} ${motor_height}" lrpy="0 0 0"
     meshfile="package://visualization/meshes/BottomPlate.STL"
-    meshscale="0.0254 0.0254 0.0254"/>
+    meshscale="1 1 1"
+    jxyz = "0 0 0" jrpy = "0 0 0"/>
 
-  <joint name="bottom_plate_joint" type="fixed">
-    <origin xyz="0 0 0" rpy="0 0 0" />
-    <parent link="moving_link"/>
-    <child link="bottom_plate" />
-  </joint>
+  <xacro:body_link_mesh name="mid_plate" mat="smokey"
+    lxyz="${-body_thickness/2} ${-body_width/2} ${motor_height + mid_tier + plate_thickness}" lrpy="0 0 0"
+    meshfile="package://visualization/meshes/MidPlate.STL"
+    meshscale="1 1 1"
+    jxyz = "0 0 0" jrpy = "0 0 0"/>
 
+  <xacro:body_link_mesh name="top_plate" mat="smokey"
+    lxyz="${-body_thickness/2} ${-body_width/2} ${motor_height + mid_tier + top_tier + plate_thickness}" lrpy="0 0 0"
+    meshfile="package://visualization/meshes/TopPlate.STL"
+    meshscale="1 1 1"
+    jxyz = "0 0 0" jrpy = "0 0 0"/>
 
-  <!-- Wheel Creation -->
-
-  <!-- Caster Creation -->
+    <!-- ${-body_thickness/2 + tl_hole_x} ${-body_width/2} -->
+  <xacro:body_link_mesh name="tl_sh_standoff" mat="aluminum"
+    lxyz=" 0 0 ${motor_height - standoff_depth}" lrpy="0 0 0"
+    meshfile="package://visualization/meshes/ShortStandoff.STL"
+    meshscale="1 1 1"
+    jxyz = "0 0 0" jrpy = "0 0 0"/>
 
 </robot>
