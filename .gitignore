@@ -6,3 +6,5 @@ src/CMakeLists.txt
 *.pickle
 PrelimTesting/SelfBalancing.py
 PrelimTesting/2DSelfBalancingRobot.py
+
+*.zip

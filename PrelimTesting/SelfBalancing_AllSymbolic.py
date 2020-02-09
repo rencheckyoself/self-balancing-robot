@@ -301,7 +301,7 @@ ham_subs = ham.subs(subber_q)
 # print(latex(ham_subs))
 
 pickle_ham = open("Ham.pickle", "wb")
-pickle.dump(ham_subs, pickle_ham)
+pickle.dump(ham_subs, pickle_ham, protocol=2)
 pickle_ham.close()
 
 EL_eq = sym.Eq(dLdqdot_dt-dLdq, F_mat + grad_phi.T * lam_mat)
@@ -316,7 +316,7 @@ sols = sym.solve([EL_eq, phi_dd], [Xbdd, Ybdd, Tbdd, Prdd, Pldd, Ttdd, lam1, lam
 print("Solved Equations of Motion")
 
 pickle_sols = open("Sols.pickle", "wb")
-pickle.dump(sols, pickle_sols)
+pickle.dump(sols, pickle_sols, protocol=2)
 pickle_sols.close()
 
 # print("x_b solution")
@@ -347,5 +347,5 @@ EOM_tt = sym.Eq(Ttdd, sols[Ttdd])
 eom_arr = [EOM_xb, EOM_yb, EOM_tb, EOM_pr, EOM_pl, EOM_tt]
 
 pickle_EOMs = open("EOMs.pickle", "wb")
-pickle.dump(eom_arr, pickle_EOMs)
+pickle.dump(eom_arr, pickle_EOMs, protocol=2)
 pickle_EOMs.close()

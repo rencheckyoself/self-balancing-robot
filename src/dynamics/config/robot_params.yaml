@@ -8,6 +8,10 @@ wheel_Ixy: 0 # the Ixy component of the wheel inertia
 wheel_Ixz: 0 # the Ixz component of the wheel inertia
 wheel_Iyz: 0 # the Iyz component of the wheel inertia
 
+body_width: 4 # y distance of the body
+body_height: 3 # z distance of the body
+body_thickness: 1 # x distance of the body
+
 body_wheel_base: 4 # Distance between the wheels centers
 body_com_height: 1.5 # Height to the COM of the body from the base link
 body_mass: 4 # The mass of the body assembly

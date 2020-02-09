@@ -18,6 +18,7 @@ import pickle
 
 import rospy
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64
 
 from dynamics import integrate, Controller
 
@@ -187,9 +188,9 @@ class BalanceBot(object):
         Function to compute the hamiltonian. Used to show help verify the validity
         of the simulation.
 
-        Theoretically ham = 0, but the numerical integration will
-        create an error over time resulting in ham != 0. If this error is small
-        the simulation is more trustworthy.
+        Theoretically the hamiltonian is constant, but the numerical integration
+        will create an error over time resulting a changing hamiltonian value.
+        If this error is small the simulation is more trustworthy.
         """
         # (0   1       2   3       4   5       6   7       8   9       10  11    )
         # (xb, xb_dot, yb, yb_dot, tb, tb_dot, pr, pr_dot, pl, pl_dot, tt, tt_dot)
@@ -236,11 +237,12 @@ class BalanceBot(object):
         const_subs = {g : 9.81,
                       m_body : self.body.mass, COMz : self.body.com_height,
                       Ixxb : self.body.inertia.Ixx, Iyyb : self.body.inertia.Iyy, Izzb : self.body.inertia.Izz,
-                      m_wheel : self.left_wheel.mass, wheel_radius : self.left_wheel.radius, wheel_base : self.body.wheel_base,
-                      Ixxw : self.left_wheel.inertia.Ixx, Iyyw : self.left_wheel.inertia.Iyy, Izzw : self.left_wheel.inertia.Izz}
+                      m_wheel : self.wheel.mass, wheel_radius : self.wheel.radius, wheel_base : self.body.wheel_base,
+                      Ixxw : self.wheel.inertia.Ixx, Iyyw : self.wheel.inertia.Iyy, Izzw : self.wheel.inertia.Izz}
+
 
         # Import solutions from file
-        sols_file = open('Sols.pickle', 'rb')
+        sols_file = open('/home/michaelrencheck/WinterProject/PrelimTesting/Sols.pickle', 'rb')
         sols = pickle.load(sols_file)
         sols_file.close()
 
@@ -251,8 +253,8 @@ class BalanceBot(object):
         EOM_pl = sym.Eq(Pldd, sols[Pldd].subs(const_subs))
         EOM_tt = sym.Eq(Ttdd, sols[Ttdd].subs(const_subs))
 
-        # lambdify the equations to make them usable functions
         var_list = [Xb, Xbd, Yb, Ybd, Tb, Tbd, Pr, Prd, Pl, Pld, Tt, Ttd, F_tht]
+        # lambdify the equations to make them usable functions
         EOM_lxb = sym.lambdify(var_list, EOM_xb.rhs)
         EOM_lyb = sym.lambdify(var_list, EOM_yb.rhs)
         EOM_ltb = sym.lambdify(var_list, EOM_tb.rhs)
@@ -262,11 +264,12 @@ class BalanceBot(object):
 
         self.eom_for_state = [EOM_lxb, EOM_lyb, EOM_ltb, EOM_lpr, EOM_lpl, EOM_ltt]
 
-        ham_file = open('Ham.pickle', 'rb')
+        ham_file = open('/home/michaelrencheck/WinterProject/PrelimTesting/Ham.pickle', 'rb')
         ham_sol = pickle.load(ham_file)
         ham_file.close()
 
-        self.ham = sym.lambdify(var_list, ham_sol.subs(const_subs))
+        self.ham_eq = sym.lambdify(var_list, ham_sol.subs(const_subs))
+
 
     def DynamicsArr(self, cur_loc):
         """
