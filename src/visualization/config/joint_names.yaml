@@ -1,0 +1,5 @@
+body_joint: 'body_joint' # must match urdf
+left_wheel_joint:  'left_wheel_axle' # must match urdf
+right_wheel_joint: 'right_wheel_axle' # must match urdf
+odom_frame_id: "odom"
+base_frame_id: "base_link" #must match urdf

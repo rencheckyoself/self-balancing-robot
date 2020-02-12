@@ -2,7 +2,7 @@
   <!-- This launch file is used to display the robot created by the balance bot xacro file -->
 
   <!-- load the urdf with xacro file-->
-  <param name="robot_description" command="xacro '$(find visualization)/urdf/balance_bot.urdf.xacro'" />
+  <param name="robot_description" command="xacro '$(find visualization)/urdf/balance_bot.urdf.xacro'"/>
 
   <!-- The robot_state_publisher reads the urdf from /robot_description parameter
        and listens to joint information on the /joint_states topic -->
@@ -12,7 +12,7 @@
   <arg name="use_gui" default="True" doc="(Default: True) Launch the joint_state_publisher gui to publish joint angles"/>
 
   <!-- The joint state publisher will be launched with a gui -->
-  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" if="$(eval use_gui==True)">
     <param name="use_gui" value="$(arg use_gui)" />
   </node>
 

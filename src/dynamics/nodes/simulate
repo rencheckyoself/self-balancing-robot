@@ -19,7 +19,12 @@ import scipy.linalg
 
 import pickle
 
+import tf_conversions
 import rospy
+import tf2_ros
+
+from geometry_msgs.msg import TransformStamped
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 
@@ -100,6 +105,9 @@ class BalanceBot(object):
         self.pub_js = rospy.Publisher("joint_states", JointState, queue_size=1)
         self.pub_ham = rospy.Publisher("hamiltonian", Float64, queue_size=1)
         self.pub_tau = rospy.Publisher("control_force", Float64, queue_size=1)
+        self.pub_odom = rospy.Publisher("odom", Odometry, queue_size=1)
+
+        self.br = tf2_ros.TransformBroadcaster()
 
         self.eom_for_state = [] # List of eqs to calculate acceleration
         self.ham_eq = 0 # Eq to calculate the hamiltonian
@@ -316,22 +324,67 @@ class BalanceBot(object):
         """
         r = rospy.Rate(self.rate)
         state = JointState()
-        state.name = ['wheel_left_axle, wheel_right_axle']
+        odom_frame_id = rospy.get_param("odom_frame_id")
+        base_frame_id = rospy.get_param("base_frame_id")
+
+        body_joint = rospy.get_param("body_joint")
+        left_wheel_joint = rospy.get_param("left_wheel_joint")
+        right_wheel_joint = rospy.get_param("right_wheel_joint")
+
+        left_wheel_pub = rospy.Publisher("left_wheel_angle", Float64, queue_size=1)
 
         while not rospy.is_shutdown():
 
-            self.cur_x = integrate(self.DynamicsArr, self.cur_x, 1./self.rate)
-            self.calc_hamiltonian()
+            self.cur_x = integrate(self.DynamicsArr, self.cur_x[:], 1./self.rate)
 
+            # Assemble Joint State Message
             state.header.stamp = rospy.Time.now()
-            state.name = ["left_wheel_axle, right_wheel_axle, body_joint"]
-            state.position = [self.cur_x[6], self.cur_x[8], self.cur_x[10]]
-            # state.velocity = [self.cur_x[7], self.cur_x[9], self.cur_x[11]]
+            state.name = [body_joint, left_wheel_joint, right_wheel_joint]
+            state.position = [self.cur_x[10], self.cur_x[6], self.cur_x[8]]
+            state.velocity = [self.cur_x[11], self.cur_x[7], self.cur_x[9]]
 
+            # Assemble Frame to Broadcast
+            tfm = TransformStamped()
 
+            tfm.header.stamp = rospy.Time.now()
+            tfm.header.frame_id = odom_frame_id
+            tfm.child_frame_id = base_frame_id
+
+            tfm.transform.translation.x = self.cur_x[0]
+            tfm.transform.translation.y = self.cur_x[2]
+
+            q = tf_conversions.transformations.quaternion_from_euler(0,0,self.cur_x[4])
+            tfm.transform.rotation.x = q[0]
+            tfm.transform.rotation.y = q[1]
+            tfm.transform.rotation.z = q[2]
+            tfm.transform.rotation.w = q[3]
+
+            # Assemble Odometry Message
+            od = Odometry()
+            od.header.stamp = rospy.Time.now()
+            od.header.frame_id = odom_frame_id
+
+            od.pose.pose.position.x = self.cur_x[0]
+            od.pose.pose.position.y = self.cur_x[2]
+            od.pose.pose.orientation.x = q[0]
+            od.pose.pose.orientation.y = q[1]
+            od.pose.pose.orientation.z = q[2]
+            od.pose.pose.orientation.w = q[3]
+
+            od.child_frame_id = base_frame_id
+            od.twist.twist.linear.x = self.cur_x[1]
+            od.twist.twist.linear.y = self.cur_x[3]
+            od.twist.twist.angular.z = self.cur_x[5]
+
+            left_wheel_pub.publish(self.cur_x[6])
+
+            # Publish and Broadcast Everything!
             self.pub_js.publish(state)
-            self.pub_tau.publish(self.tau)
+            self.pub_odom.publish(od)
+            self.br.sendTransform(tfm)
 
+            self.calc_hamiltonian()
+            self.pub_tau.publish(self.tau)
             r.sleep()
 
 def main():

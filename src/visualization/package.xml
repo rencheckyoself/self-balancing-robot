@@ -2,7 +2,7 @@
 <package format="2">
   <name>visualization</name>
   <version>0.0.0</version>
-  <description>Used to animate the simulation results for a self balancing robot</description>
+  <description>Animates the simulation results for a self balancing robot</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -50,8 +50,11 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>joint_state_publisher</build_depend>
+  <build_depend>robot_state_publisher</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rviz</build_depend>
+
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rviz</build_export_depend>

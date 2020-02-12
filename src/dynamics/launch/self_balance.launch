@@ -2,7 +2,13 @@
 
   <rosparam command="load" file="$(find dynamics)/config/robot_params.yaml"/>
   <rosparam command="load" file="$(find dynamics)/config/controller_params.yaml"/>
+  <rosparam command="load" file="$(find visualization)/config/joint_names.yaml"/>
 
   <node name="simulate" pkg="dynamics" type="simulate" output="screen"/>
+
+  <include file="$(find visualization)/launch/view_robot.launch">
+    <arg name="use_gui" value="False"/>
+    <arg name="rviz_config" value="-d $(find visualization)/rviz/odom.rviz"/>
+  </include>
 
 </launch>

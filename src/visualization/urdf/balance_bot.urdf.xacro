@@ -6,30 +6,24 @@
   <xacro:property name="props" value="${load_yaml('$(find dynamics)/config/robot_params.yaml')}"/>
 
   <xacro:property name="wheel_radius" value="${props['wheel_radius']}"/>
-  <xacro:property name="wheel_radius" value="${props['body_wheel_base']}"/>
+  <xacro:property name="wheel_base" value="${props['body_wheel_base']}"/>
+
   <xacro:property name="body_width" value="${props['body_width']}"/>
   <xacro:property name="body_height" value="${props['body_height']}"/>
   <xacro:property name="body_thickness" value="${props['body_thickness']}"/>
   <xacro:property name="body_com_height" value="${props['body_com_height']}"/>
 
-
-  <xacro:property name="motor_height" value="0.005"/> <!-- distance between wheel rotation axis and bottom plate-->
+  <xacro:property name="motor_height" value="0.0115"/> <!-- distance between wheel rotation axis and bottom plate-->
   <xacro:property name="mid_tier" value="0.0191"/> <!-- distance between mid plate and bottom plate-->
   <xacro:property name="top_tier" value="0.0254"/> <!-- distance between mid plate and top plate-->
-
-  <xacro:property name="plate_thickness" value="0.00318"/> <!-- plate thickness -->
-  <xacro:property name="standoff_depth" value="0.00318"/> <!-- distance the standoff pokes through the plate -->
-  <xacro:property name="tl_hole_x" value="0.00508"/> <!-- hole offset from edge -->
-  <xacro:property name="tl_hole_y" value="0.00508"/> <!-- hole offset from edge -->
-  <xacro:property name="hole_pattern_x" value="0"/> <!-- center to center distance between holes -->
-  <xacro:property name="hole_pattern_y" value="0"/> <!-- center to center distance between holes -->
+  <xacro:property name="motor_shaft" value="0.00907"/> <!-- length of the motor_shaft -->
 
   <material name="smokey">
-    <color rgba=".1 .1 .1 .5"/>
+    <color rgba=".1 .1 .1 1"/>
   </material>
 
-  <material name="aluminum">
-    <color rgba=".5 .5 .5 .95"/>
+  <material name="wheel">
+    <color rgba=".5 .5 .5 .5"/>
   </material>
 
   <material name="invisible">
@@ -55,6 +49,24 @@
     </joint>
   </xacro:macro>
 
+  <xacro:macro name="wheel_link_mesh" params="name lxyz lrpy mat meshfile meshscale jxyz jrpy">
+    <link name="${name}">
+      <visual>
+        <origin rpy="${lrpy}" xyz="${lxyz}" />
+        <geometry>
+          <mesh filename="${meshfile}" scale="${meshscale}"/>
+        </geometry>
+        <material name="${mat}"/>
+      </visual>
+    </link>
+
+    <joint name= "${name}_axle" type="continuous">
+      <origin xyz="${jxyz}" rpy="${jrpy}" />
+      <parent link="base_link"/>
+      <child link="${name}" />
+      <axis xyz = "0 -1 0"/>
+    </joint>
+  </xacro:macro>
 
   <!-- The base link of the robot center between the two wheels directly below the COM of the body -->
   <link name="base_link" >
@@ -81,35 +93,28 @@
   </link>
 
   <joint name="body_joint" type="continuous">
-    <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0" />
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 ${-pi/2} 0" />
     <parent link="base_link"/>
     <child link="moving_link" />
     <axis xyz="0 1 0"/>
   </joint>
 
-  <xacro:body_link_mesh name="bottom_plate" mat="smokey"
-    lxyz="${-body_thickness/2} ${-body_width/2} ${motor_height}" lrpy="0 0 0"
-    meshfile="package://visualization/meshes/BottomPlate.STL"
+  <xacro:body_link_mesh name="body_mesh" mat="smokey"
+    lxyz="${-body_thickness/2} ${-body_width/2 - motor_shaft} ${-motor_height/2}" lrpy="0 0 0"
+    meshfile="package://visualization/meshes/SelfBalancingBotBody.STL"
     meshscale="1 1 1"
-    jxyz = "0 0 0" jrpy = "0 0 0"/>
+    jxyz="0 0 0" jrpy="0 0 0"/>
 
-  <xacro:body_link_mesh name="mid_plate" mat="smokey"
-    lxyz="${-body_thickness/2} ${-body_width/2} ${motor_height + mid_tier + plate_thickness}" lrpy="0 0 0"
-    meshfile="package://visualization/meshes/MidPlate.STL"
+  <xacro:wheel_link_mesh name="left_wheel" mat="wheel"
+    lxyz="${wheel_radius} ${body_width/2} ${-wheel_radius}" lrpy="0 0 ${pi/2}"
+    meshfile="package://visualization/meshes/Wheel.STL"
     meshscale="1 1 1"
-    jxyz = "0 0 0" jrpy = "0 0 0"/>
+    jxyz="0 0 ${wheel_radius}" jrpy="0 0 0"/>
 
-  <xacro:body_link_mesh name="top_plate" mat="smokey"
-    lxyz="${-body_thickness/2} ${-body_width/2} ${motor_height + mid_tier + top_tier + plate_thickness}" lrpy="0 0 0"
-    meshfile="package://visualization/meshes/TopPlate.STL"
+  <xacro:wheel_link_mesh name="right_wheel" mat="wheel"
+    lxyz="${-wheel_radius} ${-(body_width/2)} ${-wheel_radius}" lrpy="0 0 ${-pi/2}"
+    meshfile="package://visualization/meshes/Wheel.STL"
     meshscale="1 1 1"
-    jxyz = "0 0 0" jrpy = "0 0 0"/>
-
-    <!-- ${-body_thickness/2 + tl_hole_x} ${-body_width/2} -->
-  <xacro:body_link_mesh name="tl_sh_standoff" mat="aluminum"
-    lxyz=" 0 0 ${motor_height - standoff_depth}" lrpy="0 0 0"
-    meshfile="package://visualization/meshes/ShortStandoff.STL"
-    meshscale="1 1 1"
-    jxyz = "0 0 0" jrpy = "0 0 0"/>
+    jxyz="0 0 ${wheel_radius}" jrpy="0 0 0"/>
 
 </robot>
