@@ -11,4 +11,6 @@
     <arg name="rviz_config" value="-d $(find visualization)/rviz/odom.rviz"/>
   </include>
 
+  <node name="plot" pkg="rqt_plot" type="rqt_plot"/>
+
 </launch>
