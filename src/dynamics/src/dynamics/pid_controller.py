@@ -26,6 +26,9 @@ class Controller(object):
         self.set_point = set_point
         self.direction = direction
 
+        self.max_lim = 10000
+        self.min_lim = -10000
+
         self.error_sum = 0
         self.prev_error = 0
         self.prev_input = 0
@@ -53,15 +56,28 @@ class Controller(object):
         self.prev_input = input
         self.prev_error = error
 
-
         # Compute Control
         control = self.direction * (self.kp * error + self.ki * self.error_sum - self.kd * d_input)
+
+        control = max(min(control, self.max_lim), self.min_lim)
 
         return control
 
     def _mod_gains(self):
         self.ki *= self.timestep
         self.kd /= self.timestep
+
+    def change_output_lims(self, minlim, maxlim):
+        """
+        Function to change the control output limits
+
+        Inputs:
+            minlim: (double) the minimum allowable control limit
+            maxlim: (double) the maximum allowable control limit
+        """
+
+        self.max_lim = maxlim
+        self.min_lim = minlim
 
     def change_direction(self, direction):
         """
@@ -80,4 +96,4 @@ class Controller(object):
         Input:
             new_val: (double) the new set point
         """
-        self.setpoint = new_val
+        self.set_point = new_val

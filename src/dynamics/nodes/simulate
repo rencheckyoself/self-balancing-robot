@@ -106,7 +106,8 @@ class BalanceBot(object):
         self.pub_ham = rospy.Publisher("hamiltonian", Float64, queue_size=1)
         self.pub_tau = rospy.Publisher("control_force", Float64, queue_size=1)
         self.pub_odom = rospy.Publisher("odom", Odometry, queue_size=1)
-        self.pub_error = rospy.Publisher("robot_error", Float64, queue_size=1)
+        self.pub_error_angle = rospy.Publisher("robot_angle_error", Float64, queue_size=1)
+        self.pub_error_body = rospy.Publisher("robot_base_error", Float64, queue_size=1)
 
         self.br = tf2_ros.TransformBroadcaster()
 
@@ -118,8 +119,9 @@ class BalanceBot(object):
         kd = rospy.get_param("kd")
         dt = 1./self.rate
         set_point = np.pi/2
-        self.pid = Controller(kp, ki, kd, dt, set_point, -1)
-
+        self.angle_pid = Controller(kp, ki, kd, dt, set_point, -1)
+        self.body_pid = Controller(.1, 0, 0.02, dt, 0, -1)
+        self.body_pid.change_output_lims(-0.1, 0.1)
         self.ComputeEOM()
 
 
@@ -300,7 +302,15 @@ class BalanceBot(object):
         """
 
         # calculate the control torque to apply
-        self.tau = self.pid.compute_control(cur_loc[10])
+
+
+        new_set = self.body_pid.compute_control(cur_loc[0])
+
+        self.angle_pid.change_setpoint(np.pi/2 + new_set)
+
+        self.tau = self.angle_pid.compute_control(cur_loc[10])
+
+        print(new_set, cur_loc[10], self.tau)
 
         # calculate the current accelerations
         acc_calc = np.ones(len(self.eom_for_state))
@@ -391,7 +401,8 @@ class BalanceBot(object):
             self.pub_odom.publish(od)
             self.br.sendTransform(tfm)
 
-            self.pub_error.publish(self.cur_x[10])
+            self.pub_error_angle.publish(self.angle_pid.prev_error)
+            self.pub_error_body.publish(self.body_pid.prev_error)
             self.calc_hamiltonian()
             self.pub_tau.publish(self.tau)
             r.sleep()

@@ -1,4 +1,4 @@
 frequency: 60 # Hz, sets sampling rate
 kp: .16 # proportional gain, must be positive
 ki: 0 # integral gain, must be positive
-kd: .003 # derivative gain, must be positive
+kd: 0.003 # derivative gain, must be positive
