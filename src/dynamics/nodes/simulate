@@ -114,14 +114,17 @@ class BalanceBot(object):
         self.eom_for_state = [] # List of eqs to calculate acceleration
         self.ham_eq = 0 # Eq to calculate the hamiltonian
 
-        kp = rospy.get_param("kp")
-        ki = rospy.get_param("ki")
-        kd = rospy.get_param("kd")
         dt = 1./self.rate
-        set_point = np.pi/2
-        self.angle_pid = Controller(kp, ki, kd, dt, set_point, -1)
-        self.body_pid = Controller(.1, 0, 0.02, dt, 0, -1)
-        self.body_pid.change_output_lims(-0.1, 0.1)
+        self.angle_pid = Controller(rospy.get_param("kp_ang"),
+                                    rospy.get_param("ki_ang"),
+                                    rospy.get_param("kd_ang"),
+                                    dt, np.pi/2, -1)
+        self.body_pid = Controller(rospy.get_param("kp_x"),
+                                   rospy.get_param("ki_x"),
+                                   rospy.get_param("kd_x"),
+                                   dt, 0, -1)
+
+        self.body_pid.change_output_lims(-0.05, 0.05)
         self.ComputeEOM()
 
 
@@ -310,7 +313,7 @@ class BalanceBot(object):
 
         self.tau = self.angle_pid.compute_control(cur_loc[10])
 
-        print(new_set, cur_loc[10], self.tau)
+        # print(new_set, cur_loc[10], self.tau)
 
         # calculate the current accelerations
         acc_calc = np.ones(len(self.eom_for_state))
