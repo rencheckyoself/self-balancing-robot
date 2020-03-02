@@ -1,9 +1,9 @@
-frequency: 60 # Hz, sets computation rate
+frequency: 200 # Hz, sets computation rate
 
-kp_ang: 0.16 # proportional gain for body angle, must be positive
-ki_ang: 0 # integral gain for body angle, must be positive
-kd_ang: 0.004 # derivative gain for body angle, must be positive
+kp_ang: 0.4 # proportional gain for body angle, must be positive
+ki_ang: 0.045 # integral gain for body angle, must be positive
+kd_ang: 0.035 # derivative gain for body angle, must be positive
 
-kp_x: 0.1 # proportional gain for body x position, must be positive
-ki_x: 0.005 # integral gain for body x position, must be positive
-kd_x: 0.04 # derivative gain for body x position, must be positive
+kp_x: 0.05 # proportional gain for body x position, must be positive
+ki_x: 0 #0.005 # integral gain for body x position, must be positive
+kd_x: 0.3 #0.04 # derivative gain for body x position, must be positive
