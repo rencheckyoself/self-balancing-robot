@@ -1,4 +1,4 @@
-frequency: 200 # Hz, sets computation rate
+frequency: 100 # Hz, sets computation rate
 
 kp_ang: 0.38 # proportional gain for body angle, must be positive
 ki_ang: 0.045 # integral gain for body angle, must be positive

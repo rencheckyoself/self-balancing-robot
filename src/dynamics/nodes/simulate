@@ -11,7 +11,6 @@ PUBLISHERS:
     /odom: (nav_msgs/Odometry) the odometry position of the robot
     /robot_angle_error: (float) Error between the vertical and the body angle
     /robot_base_error: (float) Error between the origin and the robot
-
 """
 
 import time
@@ -30,8 +29,11 @@ from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
+from std_srvs.srv import Empty
 
 from dynamics import integrate, Controller
+
+
 
 class InertiaProps(object):
     """
@@ -102,6 +104,7 @@ class BalanceBot(object):
         self.wheel = wheel
         self.body = body
 
+        self.start = 0;
 
         self.rate = rospy.get_param("frequency")
 
@@ -111,11 +114,16 @@ class BalanceBot(object):
         self.pub_odom = rospy.Publisher("odom", Odometry, queue_size=1)
         self.pub_error_angle = rospy.Publisher("robot_angle_error", Float64, queue_size=1)
         self.pub_error_body = rospy.Publisher("robot_base_error", Float64, queue_size=1)
+        self.wheel_speed_pub = rospy.Publisher("wheel_speed", Float64, queue_size=1)
+
+        self.start_service = rospy.Service('start', Empty, self.callback_start)
 
         self.br = tf2_ros.TransformBroadcaster()
 
         self.eom_for_state = [] # List of eqs to calculate acceleration
         self.ham_eq = 0 # Eq to calculate the hamiltonian
+
+        self.tau = 0
 
         dt = 1./self.rate
         self.angle_pid = Controller(rospy.get_param("kp_ang"),
@@ -261,6 +269,10 @@ class BalanceBot(object):
 
         return pos
 
+    def callback_start(self, req):
+        self.start = 1
+        return 0
+
     def Simulate(self):
         """
         The main loop to integrate the Equations of Motion and simulate the
@@ -275,11 +287,10 @@ class BalanceBot(object):
         left_wheel_joint = rospy.get_param("left_wheel_joint")
         right_wheel_joint = rospy.get_param("right_wheel_joint")
 
-        left_wheel_pub = rospy.Publisher("left_wheel_angle", Float64, queue_size=1)
-
         while not rospy.is_shutdown():
 
-            self.cur_x = integrate(self.DynamicsArr, self.cur_x[:], 1./self.rate)
+            if self.start == 1:
+                self.cur_x = integrate(self.DynamicsArr, self.cur_x[:], 1./self.rate)
 
             # Assemble Joint State Message
             state.header.stamp = rospy.Time.now()
@@ -320,17 +331,17 @@ class BalanceBot(object):
             od.twist.twist.linear.y = self.cur_x[3]
             od.twist.twist.angular.z = self.cur_x[5]
 
-            left_wheel_pub.publish(self.cur_x[6])
-
             # Publish and Broadcast Everything!
             self.pub_js.publish(state)
             self.pub_odom.publish(od)
             self.br.sendTransform(tfm)
 
+            self.wheel_speed_pub.publish(self.cur_x[7])
             self.pub_error_angle.publish(self.angle_pid.prev_error)
             self.pub_error_body.publish(self.body_pid.prev_error)
             self.calc_hamiltonian()
             self.pub_tau.publish(self.tau)
+
             r.sleep()
 
 def main():
@@ -362,7 +373,7 @@ def main():
 
     body_obj = Body(body_com, body_wbase, body_mass, b_inertia)
 
-    init_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 + 0.1), 0]
+    init_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 - .1), 0]
 
     bot = BalanceBot(init_state, wheel_obj, body_obj)
 

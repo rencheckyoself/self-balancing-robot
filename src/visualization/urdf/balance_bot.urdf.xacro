@@ -81,7 +81,6 @@
     </visual>
   </link>
 
-  <!-- This is a body link used to represent the COM of the robot. All body_link_mesh links are fixed to it-->
   <link name="moving_link">
     <visual>
       <geometry>
@@ -93,7 +92,7 @@
   </link>
 
   <joint name="body_joint" type="continuous">
-    <origin xyz="0 0 ${wheel_radius}" rpy="0 ${-pi/2} 0" />
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 ${-pi/2} ${pi}" />
     <parent link="base_link"/>
     <child link="moving_link" />
     <axis xyz="0 1 0"/>
