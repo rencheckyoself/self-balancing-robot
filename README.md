@@ -18,19 +18,21 @@ Requires: python3, sympy, numpy, scipy, and pickle
 
 This file will symbolically assemble and solve the Euler-Lagrange equations for the equations of motion that characterize a two wheeled, self balancing robot. This will generate a set of pickle files that are used to transfer the equations to the ROS simulation. This file takes about **30 min to fully run** due to the amount of symbols being processed, but your mileage may vary. If you would like to see the solutions, run the `print_solutions.py` file.
 
-See the derivations pdf in the documentation folder for more information on the system setup. 
+See the derivations pdf in the documentation folder for more information on the system setup.
 
-2) Simulate the robot using ROS
+2) Simulate the robot by launching `self_balance.launch`.
 
 Requires: ROS Melodic
 
-To run the simulation, use the launch file `self_balance.launch` This will launch the simulation using the default settings used to for the design files in this repo. If you would like to customize the simulation to your own parameters. Modify the `robot_params.yaml` file with your own parameters to simulate a different robot configuration. To modify the controller gains, change the values in the `controller_param.yaml` file.
+This will launch the simulation using the default settings used to for the design files in this repo.
+
+If you would like to customize the simulation to your own parameters modify the `robot_params.yaml` file with to simulate a different robot configuration. To modify the controller gains, change the values in the `controller_param.yaml` file. To use your own mesh, save an STL for your wheel and an STL for the robot body assembly and place them in the `meshes` directory. Either call your files the same name or update the file names inside of `balance_bot.urdf.xacro` to match your files.
 
 The simulation controller follows this flowchart:
-
 ![ControlScheme](documentation/control_scheme.png)
 
 3) Use the information from the simulation to select motors and refine the design
+
 
 
 ![WiringDiagram](documentation/wiring_diagram.png)
