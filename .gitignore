@@ -1,10 +1,11 @@
 /build
 /devel
 *.pyc
+*.pickle
+*.zip
 .catkin_workspace
 src/CMakeLists.txt
-*.pickle
 PrelimTesting/SelfBalancing.py
 PrelimTesting/2DSelfBalancingRobot.py
-
-*.zip
+PrelimTesting/pics
+ArduinoCode/Move_Motors

@@ -6,8 +6,11 @@ the simulated system and publish it at a fixed frequency.
 
 PUBLISHERS:
     /joint_states: (JoinState) the simulated state of the robot
-    /hamiltonian: (Float64) the calculated hamiltonian of the system
-    /control_force: (Float64) the required control force
+    /hamiltonian: (float) the calculated hamiltonian of the system
+    /control_force: (float) the required control force
+    /odom: (nav_msgs/Odometry) the odometry position of the robot
+    /robot_angle_error: (float) Error between the vertical and the body angle
+    /robot_base_error: (float) Error between the origin and the robot
 
 """
 
@@ -126,86 +129,6 @@ class BalanceBot(object):
 
         self.body_pid.change_output_lims(-0.05, 0.05)
         self.ComputeEOM()
-
-
-
-    # def xb_acc(x, dx):
-    #     """
-    #     Equation to calculate the x acceleration of the base link
-    #
-    #     Input:
-    #         x: (double) current x position of the base link
-    #         dx: (double) current x velocity of the base link
-    #
-    #     Output:
-    #         ddx: (double) current x acceleration of the base link
-    #     """
-    #     pass
-    #
-    # def yb_acc(y, dy):
-    #     """
-    #     Equation to calculate the y acceleration of the base link
-    #
-    #     Input:
-    #         y: (double) current y position of the base link
-    #         dy: (double) current y velocity of the base link
-    #
-    #     Output:
-    #         ddy: (double) current y acceleration of the base link
-    #     """
-    #     pass
-    #
-    # def thb_acc(th, dth):
-    #     """
-    #     Equation to calculate the angular acceleration of the base link
-    #
-    #     Input:
-    #         th: (double) current angular position of the base link
-    #         dth: (double) current angular velocity of the base link
-    #
-    #     Output:
-    #         ddth: (double) current angular acceleration of the base link
-    #     """
-    #     pass
-    #
-    # def pr_acc(th, dth):
-    #     """
-    #     Equation to calculate the angular acceleration of the right wheel
-    #
-    #     Input:
-    #         th: (double) current angular position of the right wheel
-    #         dth: (double) current angular velocity of the right wheel
-    #
-    #     Output:
-    #         ddth: (double) current angular acceleration of the right wheel
-    #     """
-    #     pass
-    #
-    # def pl_acc(th, dth):
-    #     """
-    #     Equation to calculate the angular acceleration of the left wheel
-    #
-    #     Input:
-    #         th: (double) current angular position of the left wheel
-    #         dth: (double) current angular velocity of the left wheel
-    #
-    #     Output:
-    #         ddth: (double) current angular acceleration of the left wheel
-    #     """
-    #     pass
-    #
-    # def tht_acc(th, dth):
-    #     """
-    #     Equation to calculate the angular acceleration of the robot body
-    #
-    #     Input:
-    #         th: (double) current angular position of the robot body
-    #         dth: (double) current angular velocity of the robot body
-    #
-    #     Output:
-    #         ddth: (double) current angular acceleration of the robot body
-    #     """
-    #     pass
 
     def calc_hamiltonian(self):
         """
@@ -424,22 +347,22 @@ def main():
     w_inertia = InertiaProps(rospy.get_param("wheel_Ixx"),
                              rospy.get_param("wheel_Iyy"),
                              rospy.get_param("wheel_Izz"),
-                             rospy.get_param("wheel_Ixy"),
-                             rospy.get_param("wheel_Ixz"),
-                             rospy.get_param("wheel_Iyz"))
+                             0,
+                             0,
+                             0)
 
     b_inertia = InertiaProps(rospy.get_param("body_Ixx"),
                              rospy.get_param("body_Iyy"),
                              rospy.get_param("body_Izz"),
-                             rospy.get_param("body_Ixy"),
-                             rospy.get_param("body_Ixz"),
-                             rospy.get_param("body_Iyz"))
+                             0,
+                             0,
+                             0)
 
     wheel_obj = Wheel(wheel_radius, wheel_mass, w_inertia)
 
     body_obj = Body(body_com, body_wbase, body_mass, b_inertia)
 
-    init_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 - .1), 0]
+    init_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 + 0.1), 0]
 
     bot = BalanceBot(init_state, wheel_obj, body_obj)
 

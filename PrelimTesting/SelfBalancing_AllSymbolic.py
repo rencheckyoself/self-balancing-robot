@@ -12,7 +12,7 @@ import pickle
 
 def se3ToVec(v_se3):
     """
-    Used to convert an se3 twist to a 6-Vector
+    Used to convert an se3 twist to a 6-Vector twist
     """
 
     v_six = sym.Matrix([v_se3[0, 3],
@@ -83,33 +83,14 @@ Ixxb, Iyyb, Izzb = sym.symbols('I_{xxb} I_{yyb} I_{zzb}')
 
 # Create the Spatial Intertia Matrix
 G_wheel = sym.Matrix(np.diagflat([m_wheel, m_wheel, m_wheel, Ixxw, Iyyw, Izzw]))
-
-# G_wheel[3, 4] = Ixyw
-# G_wheel[4, 3] = Ixyw
-#
-# G_wheel[3, 5] = Ixzw
-# G_wheel[5, 3] = Ixzw
-#
-# G_wheel[4, 5] = Iyzw
-# G_wheel[5, 4] = Iyzw
-
 G_body = sym.Matrix(np.diagflat([m_body, m_body, m_body, Ixxb, Iyyb, Izzb]))
-
-# G_body[3, 4] = Ixyb
-# G_body[4, 3] = Ixyb
-#
-# G_body[3, 5] = Ixzb
-# G_body[5, 3] = Ixzb
-#
-# G_body[4, 5] = Iyzb
-# G_body[5, 4] = Iyzb
 
 ###########################
 # Config Variable Set Up
-g = sym.symbols('g')
-lam1, lam2 = sym.symbols('l_1 l_2')
+g = sym.symbols('g') # gravity
+lam1, lam2 = sym.symbols('l_1 l_2') # lambdas for constraint equations
 
-# Set Functions
+# State variables
 x_b = sym.Function('xb')(t)
 y_b = sym.Function('yb')(t)
 th_b = sym.Function('thb')(t)
@@ -161,8 +142,6 @@ F_mat = sym.Matrix([[0],
 ############################################################################
 
 # Translational Transformations ############################################
-
-
 g_transb = sym.Matrix([[1, 0, 0, x_b],
                        [0, 1, 0, y_b],
                        [0, 0, 1, wheel_radius],
@@ -190,8 +169,6 @@ g_transt = sym.Matrix([[1, 0, 0, xt],
                        [0, 0, 0, 1]])
 
 # Rotational Transformations ###############################################
-
-
 g_rotb = sym.Matrix([[sym.cos(th_b), -sym.sin(th_b), 0, 0],
                      [sym.sin(th_b), sym.cos(th_b), 0, 0],
                      [0, 0, 1, 0],
@@ -223,8 +200,6 @@ g_bl = g_transl * g_rotl
 g_bt = g_transt * g_rott
 
 # Final Transformations - all bodies relative to the world frame ###########
-
-
 g_wb = g_transb * g_rotb
 
 g_wr = g_wb * g_br
@@ -260,7 +235,6 @@ KEl = sym.simplify(.5 * Vl.T * G_wheel * Vl)
 KE_tot = sym.simplify(KEt[0] + KEr[0] + KEl[0])
 
 # Calculate the Potential Energy of each body ##############################
-# Only component is the body of the robot
 
 PEb = m_body * g * g_wt[2, 3]
 
@@ -273,7 +247,7 @@ print("Legrangian Assembled -- Setting Up E-L Equations...")
 
 ############################################################################
 # DEFINE THE CONSTRAINTS
-    # For derivation, see Robotic Manipulation, Murray, Li, & Sastry pg. 272
+# For derivation, see Robotic Manipulation, Murray, Li, & Sastry pg. 272
 ############################################################################
 
 lam_mat = sym.Matrix([lam1, lam2])
@@ -297,9 +271,7 @@ ham = sym.simplify(ham[0] - L)
 
 ham_subs = ham.subs(subber_q)
 
-# print("Hamiltotian Equation")
-# print(latex(ham_subs))
-
+# Save Hamiltonian to use in simulation
 pickle_ham = open("Ham.pickle", "wb")
 pickle.dump(ham_subs, pickle_ham, protocol=2)
 pickle_ham.close()
@@ -318,34 +290,3 @@ print("Solved Equations of Motion")
 pickle_sols = open("Sols.pickle", "wb")
 pickle.dump(sols, pickle_sols, protocol=2)
 pickle_sols.close()
-
-# print("x_b solution")
-# print(latex(sym.simplify(sols[Xbdd])))
-#
-# print("y_b solution")
-# print(latex(sym.simplify(sols[Ybdd])))
-#
-# print("th_b solution")
-# print(latex(sym.simplify(sols[Tbdd])))
-#
-# print("P_r solution")
-# print(latex(sym.simplify(sols[Prdd])))
-#
-# print("P_l solution")
-# print(latex(sym.simplify(sols[Pldd])))
-#
-# print("th_t solution")
-# print(latex(sym.simplify(sols[Ttdd])))
-
-EOM_xb = sym.Eq(Xbdd, sols[Xbdd])
-EOM_yb = sym.Eq(Ybdd, sols[Ybdd])
-EOM_tb = sym.Eq(Tbdd, sols[Tbdd])
-EOM_pr = sym.Eq(Prdd, sols[Prdd])
-EOM_pl = sym.Eq(Pldd, sols[Pldd])
-EOM_tt = sym.Eq(Ttdd, sols[Ttdd])
-
-eom_arr = [EOM_xb, EOM_yb, EOM_tb, EOM_pr, EOM_pl, EOM_tt]
-
-pickle_EOMs = open("EOMs.pickle", "wb")
-pickle.dump(eom_arr, pickle_EOMs, protocol=2)
-pickle_EOMs.close()

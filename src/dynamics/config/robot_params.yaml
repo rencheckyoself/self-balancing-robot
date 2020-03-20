@@ -6,9 +6,6 @@ wheel_mass: 0.020 # mass of a wheel
 wheel_Ixx: 0.00012005 # the Ixx component of the wheel intertia
 wheel_Iyy: 0.00002336 # the Iyy component of the wheel inertia
 wheel_Izz: 0.00012004 # the Izz component of the wheel inertia
-wheel_Ixy: 0 # the Ixy component of the wheel inertia
-wheel_Ixz: 0 # the Ixz component of the wheel inertia
-wheel_Iyz: 0 # the Iyz component of the wheel inertia
 
 body_width: 0.13 # y distance of the body
 body_height: 0.28264 # z distance of the body
@@ -21,6 +18,3 @@ body_mass: 0.25 # The mass of the body assembly
 body_Ixx: 0.00095037 # the Ixx component of the body intertia
 body_Iyy: 0.00079066 # the Iyy component of the body inertia
 body_Izz: 0.00038029 # the Izz component of the body inertia
-body_Ixy: 0 # the Ixy component of the body inertia
-body_Ixz: 0 # the Ixz component of the body inertia
-body_Iyz: 0 # the Iyz component of the body inertia

@@ -13,6 +13,8 @@
 #include "imu_utility.hpp"
 #include "motor_driver_utility.hpp"
 
+#define READ_ANGLE euler.y()
+
 
 // initialize encoders
 static Encoders leftEncoder(MOTOR_LEFT_ENC1, MOTOR_LEFT_ENC2);
@@ -101,18 +103,18 @@ void loop() {
     {
     
       euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-      Input = euler.z();
+      Input = READ_ANGLE;
 
       anglePID.Compute();
 
             
       
-      if(euler.z() > HOME_ANGLE)
+      if(READ_ANGLE > HOME_ANGLE)
       {
         moveMotorFWD(Output);
       }
 
-      else if(euler.z() < HOME_ANGLE)
+      else if(READ_ANGLE < HOME_ANGLE)
       {
         moveMotorBKD(Output);
       }
