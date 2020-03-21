@@ -21,9 +21,9 @@ Requires: python3, sympy, numpy, scipy, and pickle
 
 This file will symbolically solve the Euler-Lagrange equations to derive the equations of motion that characterize a two wheeled, self balancing robot. This will generate a set of pickle files that are used to transfer the equations to the ROS simulation. This file takes about **30 min to fully run** due to the amount of symbols being processed, but your mileage may vary. If you would like to see the actual solutions, the raw Latex code is in the 'solutions.txt' file or you can run the `print_solutions.py` file.
 
-See `derivations.pdf` in the documentation folder for more information on the system setup and derivation of the equations.
+See [derivations.pdf](documentation/derivations.pdf) in the documentation folder for more information on the system setup and derivation of the equations.
 
-**2) Simulate the robot by launching `self_balance.launch`.**
+**2) Simulate the robot by launching `self_balance.launch`**
 
 Requires: ROS Melodic
 
@@ -37,9 +37,9 @@ Package Desciption:
     - To modify the controller gains, change the values in the `controller_param.yaml` file.
   ![ControlScheme](documentation/control_scheme.png)   
 
- - `visualization`: This package contains all of the files relevant to the visual component of the simulation. The included launch file displays the `balance_bot.urdf.xacro` and is useful if you want to modify the existing model.
+- `visualization`: This package contains all of the files relevant to the visual component of the simulation. The included launch file displays the `balance_bot.urdf.xacro` and is useful if you want to modify the existing model.
 
-  - To use your own mesh, save an STL for your wheel and an STL for the robot body assembly and place them in the `meshes` directory. Either call your files the same name or update the file names inside of `balance_bot.urdf.xacro` to match your files.
+    - To use your own mesh, save an STL for your wheel and an STL for the robot body assembly and place them in the `meshes` directory. Either call your files the same name or update the file names inside of `balance_bot.urdf.xacro` to match your files.
 
 **3) Build it!**
 
