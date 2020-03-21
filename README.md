@@ -43,7 +43,7 @@ Package Desciption:
 
 **3) Build it!**
 
-The files located in the `Prototyping` directory should be everything you need to build your own or use the insights gained to make your own modifications.
+The files located in the `Prototyping` directory should be everything you need to build your own or use the insights discussed below to make your own modifications.
 
 It contains:
  - CAD files
@@ -64,16 +64,37 @@ Currently the code does not actually incorporate the encoders to accomplish the 
 
 ![WiringDiagram](Prototyping/wiring_diagram.png)
 
+## Lessons Learned
+
+V2 is currently in-progress and the design will be largely the same but incorporating the changes mentioned at the end of the video.
+
+1) The actual V1 build came out much heavier than anticipated, this can be attributed to not accounting for the components not in CAD (wires, nuts, screws, etc.) and the 9V battery. This was added late due to the 6V AA pack not being able to reliably power both the Arduino and the motors.
+
+2) The torques and speeds required for this design, are pushing these motors to their design limits. Therefore, any drop below their rated operating voltage of 6V really hurts their ability to output the required control.
+
+3) The IMU used has onboard processing that provides easy access to an absolute position. Since the system is oscillating very quickly the 100Hz data stream may not be quick enough for to allow the motors enough time to react.
+
+4) the IMU fell out of calibration after a few tests and caused the robot to try and balance to a non-vertical position.
+
+5) There is some play in the wheel shaft to the gear box that allows the body to rotate a couple degrees without the motors spinning. Since the window of stable positions is only +/-6 degrees or so, this amount of play is not negligible.
+
+Potential Solutions for V2:
+ - Switch to aluminum standoff to save weight
+ - Switch to an Arduino Nano and remove middle plate to save weight
+ - Switch to 2S Lipo battery to save weight
+ - integrate a 6V DC-DC regulator to power the motors
+ - Incorporating encoder-based position control can help counteract the IMU calibration issues
+ - Simulate V2 design a reevaluate motor selection based on required torques and wheel speeds
+ - Slight increase of the body height to make the balancing easier and allow the control system more time to react.
+
+
 ## Future Plans
 
 This repository is for an active project and a lot of insight was drawn from the first design.
 
+Planned items:
+
 - Integrate simulation functionality for different torques applied to each wheel. This will enable the simulation to turn and eventually follow waypoints.
-
 - Construct a V2 robot that will be able to balance unteathered.
-
 - Incorporate encoders into the V2 control scheme
-
-V2 is currently in-progress and the design will be largely the same but incorporating the changes mentioned at the end of the video.
-
-1) The actual V1 build came out much heavier
+- Control the physical robot to follow a set of waypoints in 3D space
