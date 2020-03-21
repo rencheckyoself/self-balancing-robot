@@ -1,0 +1,2 @@
+solutions_file_path: '/home/michaelrencheck/WinterProject/SolveEOM/Sols.pickle' # solutions file path
+ham_file_path: '/home/michaelrencheck/WinterProject/SolveEOM/Ham.pickle' # hamiltonian file path
