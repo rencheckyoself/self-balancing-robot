@@ -66,9 +66,9 @@ Currently the code does not actually incorporate the encoders to accomplish the 
 
 ## Lessons Learned
 
-V2 is currently in-progress and the design will be largely the same but incorporating the changes mentioned at the end of the video.
+V2 is currently in-progress and the design will be largely the same but incorporating the changes based on the following insights:
 
-1) The actual V1 build came out much heavier than anticipated, this can be attributed to not accounting for the components not in CAD (wires, nuts, screws, etc.) and the 9V battery. This was added late due to the 6V AA pack not being able to reliably power both the Arduino and the motors.
+1) The actual V1 build came out much heavier than anticipated, this can be attributed to not accounting for the components not in CAD (wires, nuts, screws, etc.) and the 9V battery. This was added late due to the 6V AA pack not being able to reliably power both the Arduino and the motors. 
 
 2) The torques and speeds required for this design, are pushing these motors to their design limits. Therefore, any drop below their rated operating voltage of 6V really hurts their ability to output the required control.
 
