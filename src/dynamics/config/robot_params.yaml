@@ -1,5 +1,7 @@
 # All units are in m and kg
 
+init_state: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.471, 0] # the initial starting position of the robot. Syntax: (xb, xb_dot, yb, yb_dot, tb, tb_dot, pr, pr_dot, pl, pl_dot, tt, tt_dot)
+
 wheel_radius: 0.04 # Radius of the wheels
 wheel_mass: 0.020 # mass of a wheel
 

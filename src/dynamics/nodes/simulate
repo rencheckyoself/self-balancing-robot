@@ -11,6 +11,9 @@ PUBLISHERS:
     /odom: (nav_msgs/Odometry) the odometry position of the robot
     /robot_angle_error: (float) Error between the vertical and the body angle
     /robot_base_error: (float) Error between the origin and the robot
+
+SERVICES:
+    /start: (Empty) Call this service to start the simulation
 """
 
 import time
@@ -29,7 +32,7 @@ from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, EmptyResponse
 
 from dynamics import integrate, Controller
 
@@ -197,7 +200,7 @@ class BalanceBot(object):
 
 
         # Import solutions from file
-        sols_file = open('/home/michaelrencheck/WinterProject/PrelimTesting/Sols.pickle', 'rb')
+        sols_file = open(rospy.get_param("solutions_file_path"), 'rb')
         sols = pickle.load(sols_file)
         sols_file.close()
 
@@ -219,7 +222,7 @@ class BalanceBot(object):
 
         self.eom_for_state = [EOM_lxb, EOM_lyb, EOM_ltb, EOM_lpr, EOM_lpl, EOM_ltt]
 
-        ham_file = open('/home/michaelrencheck/WinterProject/PrelimTesting/Ham.pickle', 'rb')
+        ham_file = open(rospy.get_param("ham_file_path"), 'rb')
         ham_sol = pickle.load(ham_file)
         ham_file.close()
 
@@ -271,7 +274,7 @@ class BalanceBot(object):
 
     def callback_start(self, req):
         self.start = 1
-        return 0
+        return []
 
     def Simulate(self):
         """
@@ -373,7 +376,7 @@ def main():
 
     body_obj = Body(body_com, body_wbase, body_mass, b_inertia)
 
-    init_state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (np.pi/2 - .1), 0]
+    init_state = rospy.get_param('init_state')
 
     bot = BalanceBot(init_state, wheel_obj, body_obj)
 

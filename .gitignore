@@ -5,7 +5,7 @@
 *.zip
 .catkin_workspace
 src/CMakeLists.txt
-PrelimTesting/SelfBalancing.py
-PrelimTesting/2DSelfBalancingRobot.py
-PrelimTesting/pics
+SolveEOM/SelfBalancing.py
+SolveEOM/2DSelfBalancingRobot.py
+SolveEOM/pics
 ArduinoCode/Move_Motors
