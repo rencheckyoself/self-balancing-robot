@@ -27,7 +27,7 @@ See [derivations.pdf](documentation/derivations.pdf) in the documentation folder
 
 Requires: ROS Melodic
 
-This will launch the simulation using the default settings used to for the design files in this repo. Once loaded, call the `/start` service to start the simulation. You will need to update the `file_path_params.yaml` in the `simulate` node to update the locations of where to find pickle files you generated earlier.
+This will launch the simulation using the default settings used for the design files in this repo. Once loaded, call the `/start` service to start the simulation. You will need to update the `file_path_params.yaml` in the `simulate` node to update the locations of where to find pickle files you generated earlier.
 
 Package Desciption:
   - `dynamics`: This package contains all of the files relevant to the computational component of the simulation. The `simulate` node uses an RK4 integration method combined with the symbolic equations of motion to compute the robot state for every time step. The robot state is then fed into a PID control scheme to compute the required motor torque to keep the robot upright following this control scheme shown below.
